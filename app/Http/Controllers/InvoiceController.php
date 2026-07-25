@@ -1,0 +1,83 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Invoice;
+use App\Http\Requests\InvoiceIndexRequest;
+use App\Http\Requests\InvoicesRequest;
+
+
+class InvoiceController extends Controller
+{
+    public function index(InvoiceIndexRequest $request)
+    {
+        $validated = $request->validated();
+
+        $query = Invoice::query();
+
+        $query->when(isset($validated['q']), function ($q) use ($validated) {
+            $q->where('title', 'like', '%' . $validated['q'] . '%');
+        });
+
+        $query->when(isset($validated['status']), function ($q) use ($validated) {
+            $q->where('status', $validated['status']);
+        });
+
+        $query->when(isset($validated['type']), function ($q) use ($validated) {
+            $q->where('type', $validated['type']);
+        });
+
+        $query->when(isset($validated['recurrence']), function ($q) use ($validated) {
+            $q->where('recurrence', $validated['recurrence']);
+        });
+
+        $query->when(isset($validated['min_occurrence']), function ($q) use ($validated) {
+            $q->where('price_occurrence', '>=', $validated['min_occurrence']);
+        });
+
+        $query->when(isset($validated['max_occurrence']), function ($q) use ($validated) {
+            $q->where('price_occurrence', '<=', $validated['max_occurrence']);
+        });
+
+        $sort = $validated['sort'] ?? 'start_date';
+        $direction = $validated['direction'] ?? 'asc';
+        $perPage = $validated['per_page'] ?? 15;
+
+        $invoices = $query
+            ->orderBy($sort, $direction)
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return response()->json($invoices);
+    }
+
+    public function show(Invoice $invoice)
+    {
+        return response()->json($invoice);
+    }
+
+    public function destroy(Invoice $invoice)
+    {
+        $invoice->delete();
+
+        return response()->json(['message' => 'Invoice deleted successfully.']);
+    }
+
+    public function update(Invoice $invoice, InvoicesRequest $request)
+    {
+        $validated = $request->validated();
+
+        $invoice->update($validated);
+
+        return response()->json($invoice);
+    }
+
+    public function store(InvoicesRequest $request)
+    {
+        $validated = $request->validated();
+
+        $invoice = Invoice::create($validated);
+
+        return response()->json($invoice, 201);
+    }
+}
