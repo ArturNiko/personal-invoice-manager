@@ -26,14 +26,17 @@ class InvoiceIndexRequest extends FormRequest
         'updated_at',
     ];
 
+    public function prepareForValidation(): void
+    {
+        if (!$this->filled('direction')) $this->merge(['direction' => 'asc']);
+        if (!$this->filled('per_page')) $this->merge(['per_page' => 20]);
+    }
+
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * @return array<string, array<int, string|\Illuminate\Contracts\Validation\ValidationRule>>
-     */
     public function rules(): array
     {
         return [
@@ -41,9 +44,6 @@ class InvoiceIndexRequest extends FormRequest
             'status' => ['sometimes', Rule::enum(InvoiceStatus::class)],
             'type' => ['sometimes', Rule::enum(InvoiceType::class)],
             'recurrence' => ['sometimes', Rule::enum(InvoiceReccuranceType::class)],
-            'min_occurrence' => ['sometimes', 'numeric', 'min:0'],
-            'max_occurrence' => ['sometimes', 'numeric', 'gte:min_occurrence'],
-
             'sort' => ['sometimes', 'string', Rule::in(self::SORTABLE_FIELDS)],
             'direction' => ['sometimes', 'string', Rule::in(['asc', 'desc'])],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],

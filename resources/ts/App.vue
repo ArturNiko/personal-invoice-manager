@@ -1,48 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import FullCalendar from '@fullcalendar/vue3'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import interactionPlugin from '@fullcalendar/interaction'
+import { ref } from 'vue'
+import InvoiceCalendar from './Components/InvoiceCalendar.vue'
 
 type ViewMode = 'calendar' | 'invoices'
 
 const viewMode = ref<ViewMode>('calendar')
-
-const calendarOptions = computed(() => ({
-    plugins: [dayGridPlugin, interactionPlugin],
-    initialView: 'dayGridMonth',
-    height: '100%',
-    expandRows: true,
-    fixedWeekCount: false,
-    headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: '',
-    },
-    buttonText: {
-        today: 'Today',
-    },
-    events: [
-        {
-            title: 'Invoice follow-up',
-            start: new Date().toISOString().slice(0, 10),
-            backgroundColor: '#7c3aed',
-            borderColor: '#7c3aed',
-        },
-        {
-            title: 'Payment due',
-            start: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-            backgroundColor: '#2563eb',
-            borderColor: '#2563eb',
-        },
-        {
-            title: 'Send reminders',
-            start: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 10),
-            backgroundColor: '#0f766e',
-            borderColor: '#0f766e',
-        },
-    ],
-}))
 
 const invoicePlaceholders = [
     {
@@ -125,23 +87,7 @@ const invoicePlaceholders = [
 
             <main class="min-h-0 flex-1">
                 <Transition name="fade" mode="out-in">
-                    <section
-                        v-if="viewMode === 'calendar'"
-                        key="calendar"
-                        class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
-                    >
-                        <div class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
-                            <div>
-                                <h2 class="text-lg font-semibold text-white">FullCalendar</h2>
-                                <p class="text-sm text-slate-400">Monthly planning view with invoice-related reminders.</p>
-                            </div>
-                            <span class="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">Full size</span>
-                        </div>
-
-                        <div class="calendar-shell flex-1 min-h-0 p-3 sm:p-5">
-                            <FullCalendar :options="calendarOptions" class="invoice-calendar h-full" />
-                        </div>
-                    </section>
+                    <InvoiceCalendar v-if="viewMode === 'calendar'" key="calendar" />
 
                     <section
                         v-else
@@ -203,43 +149,9 @@ const invoicePlaceholders = [
 </template>
 
 <style scoped>
-.invoice-calendar :deep(.fc) {
-    height: 100%;
-    color: rgb(226 232 240);
-}
-
-.invoice-calendar :deep(.fc .fc-toolbar-title) {
+.invoice-calendar .fc-header-toolbar .fc-prev-button {
+    background-color: #7c3aed !important;
     color: white;
-    font-size: 1.3rem;
-    font-weight: 700;
-}
-
-.invoice-calendar :deep(.fc .fc-button-primary) {
-    background-color: rgba(15, 23, 42, 0.9);
-    border-color: rgba(148, 163, 184, 0.2);
-}
-
-.invoice-calendar :deep(.fc .fc-button-primary:not(:disabled).fc-button-active),
-.invoice-calendar :deep(.fc .fc-button-primary:hover) {
-    background-color: rgb(14 165 233);
-    border-color: rgb(14 165 233);
-}
-
-.invoice-calendar :deep(.fc-theme-standard td),
-.invoice-calendar :deep(.fc-theme-standard th),
-.invoice-calendar :deep(.fc-theme-standard .fc-scrollgrid) {
-    border-color: rgba(148, 163, 184, 0.16);
-}
-
-.invoice-calendar :deep(.fc .fc-daygrid-day-number),
-.invoice-calendar :deep(.fc .fc-col-header-cell-cushion) {
-    color: rgb(226 232 240);
-    text-decoration: none;
-}
-
-.invoice-calendar :deep(.fc .fc-daygrid-event) {
-    border-radius: 0.75rem;
-    padding-inline: 0.25rem;
 }
 
 .fade-enter-active,

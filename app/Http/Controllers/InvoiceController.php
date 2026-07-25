@@ -31,14 +31,6 @@ class InvoiceController extends Controller
             $q->where('recurrence', $validated['recurrence']);
         });
 
-        $query->when(isset($validated['min_occurrence']), function ($q) use ($validated) {
-            $q->where('price_occurrence', '>=', $validated['min_occurrence']);
-        });
-
-        $query->when(isset($validated['max_occurrence']), function ($q) use ($validated) {
-            $q->where('price_occurrence', '<=', $validated['max_occurrence']);
-        });
-
         $sort = $validated['sort'] ?? 'start_date';
         $direction = $validated['direction'] ?? 'asc';
         $perPage = $validated['per_page'] ?? 15;

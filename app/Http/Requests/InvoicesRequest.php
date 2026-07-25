@@ -13,19 +13,20 @@ use App\Enums\InvoiceCurrency;
 
 class InvoicesRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+
+    public function prepareForValidation(): void
+    {
+        if (!$this->filled('status')) $this->merge(['status' => InvoiceStatus::PENDING->value]);
+
+        if (!$this->filled('currency')) $this->merge(['currency' => config('invoices.default_currency', InvoiceCurrency::EUR->value)]);
+        else $this->merge(['currency' => strtoupper((string) $this->input('currency'))]);
+    }
+
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, array<int, string|\Illuminate\Contracts\Validation\ValidationRule>>
-     */
     public function rules(): array
     {
         return [
@@ -36,7 +37,6 @@ class InvoicesRequest extends FormRequest
             ],
             'status' => [
                 'required', 
-                'default' => InvoiceStatus::PENDING->value,
                 Rule::enum(InvoiceStatus::class)
             ],
             'start_date' => [
@@ -53,7 +53,7 @@ class InvoicesRequest extends FormRequest
                 'required',
                 'string', 
                 'size:3', 
-                Rule::enum(Currency::class)
+                Rule::enum(InvoiceCurrency::class)
             ],
             'type' => [
                 'required', 
