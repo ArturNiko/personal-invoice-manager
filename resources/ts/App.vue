@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import axios from 'axios'
 import { useRoute, RouterView } from 'vue-router'
 
@@ -8,9 +8,21 @@ import type { InvoiceIndexResponse, InvoiceEvent } from '@/Types/Invoice'
 const invoices = ref<InvoiceEvent[]>([])
 const route = useRoute()
 
-onMounted(async () => {
+const invoiceQuery = computed(() => ({
+    q: typeof route.query.q === 'string' ? route.query.q : undefined,
+    type: typeof route.query.type === 'string' ? route.query.type : undefined,
+    sort: typeof route.query.sort === 'string' ? route.query.sort : undefined,
+    direction: typeof route.query.direction === 'string' ? route.query.direction : undefined,
+    status: typeof route.query.status === 'string' ? route.query.status : undefined,
+    recurrence: typeof route.query.recurrence === 'string' ? route.query.recurrence : undefined,
+    per_page: typeof route.query.per_page === 'string' ? route.query.per_page : undefined,
+}))
+
+const fetchInvoices = async () => {
     try {
-        const response = await axios.get<InvoiceIndexResponse>('/invoices')
+        const response = await axios.get<InvoiceIndexResponse>('/invoices', {
+            params: invoiceQuery.value,
+        })
 
         if (response.status !== 200) {
             console.error('Failed to fetch invoices:', response.statusText)
@@ -21,7 +33,19 @@ onMounted(async () => {
     } catch (error) {
         console.error('Error fetching invoices:', error)
     }
+}
+
+onMounted(async () => {
+    await fetchInvoices()
 })
+
+watch(
+    () => route.query,
+    async () => {
+        await fetchInvoices()
+    },
+    { deep: true },
+)
 
 </script>
 
