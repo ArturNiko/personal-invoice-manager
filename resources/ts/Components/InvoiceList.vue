@@ -6,6 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import type { InvoiceEvent } from "@/Types/Invoice";
 import Badge from "@/Components/Badge.vue";
+import Button from "@/Components/Button.vue";
 
 const props = defineProps<{ invoices: InvoiceEvent[] }>();
 
@@ -100,7 +101,7 @@ const formatAmount = (invoice: InvoiceEvent) => {
     return `${symbol}${amount}`;
 };
 
-const getTypeClasses = (type: string) => {
+const getTypeVariant = (type: string) => {
     return type === "recurring"
         ? "teal"
         : "sky";
@@ -110,7 +111,7 @@ const getTypeLabel = (type: string) => {
     return type === "recurring" ? "Recurring" : "One-time";
 };
 
-const getStatusClasses = (status: string) => {
+const getStatusVariant = (status: string) => {
     switch (status) {
         case "paid":
             return "emerald";
@@ -194,45 +195,30 @@ const deleteInvoice = async (id: number) => {
                 </label>
 
                 <div class="flex flex-wrap items-center gap-2">
-                    <button
-                        type="button"
-                        class="rounded-2xl border px-4 py-3 text-sm font-medium transition"
-                        :class="
-                            typeFilter === 'all'
-                                ? 'border-white/20 bg-white text-slate-950 shadow'
-                                : 'border-white/10 bg-slate-950/40 text-slate-300 hover:border-cyan-400/40 hover:text-white'
-                        "
+                    <Button
+                        :variant="typeFilter === 'all' ? 'solid' : 'outline'"
+                        size="md"
                         @click="typeFilter = 'all'"
                     >
                         All
-                    </button>
-                    <button
-                        type="button"
-                        class="rounded-2xl border px-4 py-3 text-sm font-medium transition"
-                        :class="
-                            typeFilter === 'one-time'
-                                ? 'border-sky-300/50 bg-sky-400/15 text-sky-100 shadow'
-                                : 'border-white/10 bg-slate-950/40 text-slate-300 hover:border-sky-400/40 hover:text-white'
-                        "
+                    </Button>
+                    <Button
+                        :variant="typeFilter === 'one-time' ? 'sky' : 'outline'"
+                        size="md"
                         @click="typeFilter = 'one-time'"
                     >
                         One-time
-                    </button>
-                    <button
-                        type="button"
-                        class="rounded-2xl border px-4 py-3 text-sm font-medium transition"
-                        :class="
-                            typeFilter === 'recurring'
-                                ? 'border-teal-300/50 bg-teal-400/15 text-teal-100 shadow'
-                                : 'border-white/10 bg-slate-950/40 text-slate-300 hover:border-teal-400/40 hover:text-white'
-                        "
+                    </Button>
+                    <Button
+                        :variant="typeFilter === 'recurring' ? 'teal' : 'outline'"
+                        size="md"
                         @click="typeFilter = 'recurring'"
                     >
                         Recurring
-                    </button>
-                    <button
-                        type="button"
-                        class="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm font-medium text-slate-300 transition hover:border-cyan-400/40 hover:text-white"
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="md"
                         @click="toggleSortDirection"
                     >
                         Sort:
@@ -241,7 +227,7 @@ const deleteInvoice = async (id: number) => {
                                 ? "Soonest first"
                                 : "Latest first"
                         }}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -282,29 +268,29 @@ const deleteInvoice = async (id: number) => {
                             class="mt-4 flex items-center justify-between gap-2 text-xs uppercase tracking-[0.2em]"
                         >
                             <div class="flex items-center gap-2">
-                                <Badge :variant="getTypeClasses(invoice.type)">
+                                <Badge :variant="getTypeVariant(invoice.type)">
                                     {{ getTypeLabel(invoice.type) }}
                                 </Badge>
-                                <Badge :variant="getStatusClasses(invoice.status)">
+                                <Badge :variant="getStatusVariant(invoice.status)">
                                     {{ getStatusLabel(invoice.status) }}
                                 </Badge>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-medium text-slate-300 transition hover:border-cyan-400/40 hover:text-white"
+                                <Button
+                                    variant="outline"
+                                    size="sm"
                                     @click="editInvoice(invoice.id)"
                                 >
                                     Edit
-                                </button>
-                                <button
-                                    type="button"
-                                    class="rounded-full border border-red-400/30 bg-red-500/10 px-2.5 py-1 font-medium text-red-100 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                </Button>
+                                <Button
+                                    variant="danger"
+                                    size="sm"
                                     :disabled="deletingInvoiceId === invoice.id"
                                     @click="deleteInvoice(invoice.id)"
                                 >
                                     {{ deletingInvoiceId === invoice.id ? 'Deleting...' : 'Delete' }}
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </article>

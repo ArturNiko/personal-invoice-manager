@@ -9,6 +9,7 @@ import InputDate from "@/Components/Form/InputDate.vue";
 import InputBalance from "@/Components/Form/InputBalance.vue";
 import InputSelect from "@/Components/Form/InputSelect.vue";
 import { getCurrencySymbol } from "@/Utils/Currency";
+import Button from "@/Components/Button.vue";
 
 const props = defineProps<{
     invoice?: Partial<InvoiceEvent> | null;
@@ -29,11 +30,13 @@ const submitSuccess = ref("");
 const initialInvoice = props.invoice ?? null;
 
 const normalizeDateValue = (value?: string | null) => {
-    if (!value) {
-        return "";
-    }
+    if (!value) return "";
 
     return value.split("T")[0].split(" ")[0];
+};
+
+const getInitialStartDate = () => {
+    return normalizeDateValue(initialInvoice?.start_date) || new Date().toISOString().slice(0, 10);
 };
 
 const form = reactive({
@@ -41,7 +44,7 @@ const form = reactive({
     type: (initialInvoice?.type === "recurring" ? "recurring" : "one-time") as
         "one-time" | "recurring",
     status: initialInvoice?.status ?? "pending",
-    start_date: normalizeDateValue(initialInvoice?.start_date),
+    start_date: getInitialStartDate(),
     end_date: normalizeDateValue(initialInvoice?.end_date),
     currency: initialInvoice?.currency ?? "EUR",
     recurrence:
@@ -184,7 +187,7 @@ const resetForm = () => {
         initialInvoice?.type === "recurring" ? "recurring" : "one-time"
     ) as "one-time" | "recurring";
     form.status = initialInvoice?.status ?? "pending";
-    form.start_date = normalizeDateValue(initialInvoice?.start_date);
+    form.start_date = getInitialStartDate();
     form.end_date = normalizeDateValue(initialInvoice?.end_date);
     form.currency = initialInvoice?.currency ?? "EUR";
     form.recurrence =
@@ -352,7 +355,6 @@ const deleteInvoice = async () => {
                     <InputDate
                         v-model="form.end_date"
                         label="End date"
-                        :required="isRecurring"
                     />
                 </div>
 
@@ -424,10 +426,12 @@ const deleteInvoice = async () => {
                     {{ submitSuccess }}
                 </p>
 
-                <button
+                <Button
                     type="submit"
                     :disabled="isSubmitting"
-                    class="mt-6 w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                    variant="solid"
+                    block
+                    class="mt-6"
                 >
                     {{
                         isSubmitting
@@ -436,17 +440,19 @@ const deleteInvoice = async () => {
                               ? "Save invoice"
                               : "Create invoice"
                     }}
-                </button>
+                </Button>
 
-                <button
+                <Button
                     v-if="props.mode === 'edit' && initialInvoice?.id"
                     type="button"
                     :disabled="isDeleting"
-                    class="mt-3 w-full rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    variant="danger"
+                    block
+                    class="mt-3"
                     @click="deleteInvoice"
                 >
                     {{ isDeleting ? "Deleting..." : "Delete invoice" }}
-                </button>
+                </Button>
             </aside>
         </form>
     </section>
