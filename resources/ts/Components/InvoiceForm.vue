@@ -8,6 +8,7 @@ import InputText from '@/Components/Form/InputText.vue'
 import InputDate from '@/Components/Form/InputDate.vue'
 import InputBalance from '@/Components/Form/InputBalance.vue'
 import InputSelect from '@/Components/Form/InputSelect.vue'
+import { getCurrencySymbol } from '@/Utils/Currency'
 
 
 const router = useRouter()
@@ -44,6 +45,79 @@ const currencySelectOptions = ['EUR', 'USD', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 
 
 const isRecurring = computed(() => form.type === 'recurring')
 
+const formattedOccurrenceAmount = computed(() => {
+    const occurrenceCount = recurringOccurrenceCount.value
+
+    if (!isRecurring.value || !form.price_total || occurrenceCount <= 0) {
+        return ''
+    }
+
+    const totalAmount = Number(form.price_total)
+    const occurrenceAmount = totalAmount / occurrenceCount
+
+    return `${getCurrencySymbol(form.currency)}${occurrenceAmount.toFixed(2)}`
+})
+
+const recurringOccurrenceCount = computed(() => {
+    if (!isRecurring.value || !form.start_date || !form.end_date) {
+        return 0
+    }
+
+    const recurrenceIntervals: Record<string, number> = {
+        weekly: 7,
+        biweekly: 14,
+        monthly: 1,
+        quarterly: 3,
+        semiannual: 6,
+        yearly: 12,
+    }
+
+    const toDateOnly = (value: string) => {
+        const datePart = value.split('T')[0].split(' ')[0]
+        const [year, month, day] = datePart.split('-').map(Number)
+        return new Date(year, month - 1, day)
+    }
+
+    const addMonths = (date: Date, months: number) => {
+        const nextDate = new Date(date)
+        nextDate.setMonth(nextDate.getMonth() + months)
+        return nextDate
+    }
+
+    const addInterval = (date: Date) => {
+        const nextDate = new Date(date)
+
+        if (form.recurrence === 'weekly' || form.recurrence === 'biweekly') {
+            nextDate.setDate(nextDate.getDate() + recurrenceIntervals[form.recurrence])
+            return nextDate
+        }
+
+        return addMonths(nextDate, recurrenceIntervals[form.recurrence] ?? 1)
+    }
+
+    const startDate = toDateOnly(form.start_date)
+    const endDate = toDateOnly(form.end_date)
+    let currentDate = new Date(startDate)
+    let count = 0
+
+    while (currentDate <= endDate) {
+        count += 1
+        currentDate = addInterval(currentDate)
+    }
+
+    return count
+})
+
+const occurrenceSummary = computed(() => {
+    if (!isRecurring.value || recurringOccurrenceCount.value <= 0) {
+        return 'Occurrences: not set'
+    }
+
+    const pluralized = recurringOccurrenceCount.value === 1 ? 'occurrence' : 'occurrences'
+
+    return `${recurringOccurrenceCount.value} ${pluralized}`
+})
+
 const resetForm = () => {
     form.title = ''
     form.type = 'one-time'
@@ -70,7 +144,9 @@ const submitForm = async () => {
         recurrence: isRecurring.value ? form.recurrence : undefined,
         end_date: isRecurring.value ? form.end_date : undefined,
         price_total: !isRecurring.value ? Number(form.price_total) : undefined,
-        price_occurrence: isRecurring.value ? Number(form.price_occurrence) : undefined,
+        price_occurrence: isRecurring.value && recurringOccurrenceCount.value > 0
+            ? Number(form.price_total) / recurringOccurrenceCount.value
+            : undefined,
     }
 
     try {
@@ -100,9 +176,8 @@ const submitForm = async () => {
                     <InputBalance
                         v-model="form.price_total"
                         v-model:currency="form.currency"
-                        label="One-time price"
+                        label="Price"
                         :currency-options="currencySelectOptions"
-                        :disabled="isRecurring"
                         placeholder="100.00"
                     />
                 </div>
@@ -110,6 +185,10 @@ const submitForm = async () => {
                 <div class="grid gap-4 sm:grid-cols-2">
                     <InputSelect v-model="form.type" label="Type" :options="typeSelectOptions" />
                 </div>
+
+                <p v-if="isRecurring && formattedOccurrenceAmount" class="-mt-1 text-sm text-slate-400">
+                    Price per occurrence: {{ formattedOccurrenceAmount }}
+                </p>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <InputDate v-model="form.start_date" label="Start date" required />
@@ -130,6 +209,13 @@ const submitForm = async () => {
                     <div class="rounded-xl border border-white/10 bg-white/5 p-3">Type: {{ form.type }}</div>
                     <div class="rounded-xl border border-white/10 bg-white/5 p-3">Status: {{ form.status }}</div>
                     <div class="rounded-xl border border-white/10 bg-white/5 p-3">Currency: {{ form.currency }}</div>
+                    <div class="rounded-xl border border-white/10 bg-white/5 p-3">
+                        <div v-if="isRecurring" class="space-y-1">
+                            <div>{{ occurrenceSummary }}</div>
+                            <div v-if="formattedOccurrenceAmount">Price per occurrence: {{ formattedOccurrenceAmount }}</div>
+                        </div>
+                        <span v-else>Occurrences: 1</span>
+                    </div>
                 </div>
 
                 <p v-if="submitError" class="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{{ submitError }}</p>

@@ -12,6 +12,90 @@ import type { InvoiceEvent } from '@/Types/Invoice'
 
 const props = defineProps<{ invoices: InvoiceEvent[] }>()
 
+const recurrenceIntervals: Record<string, number> = {
+    weekly: 7,
+    biweekly: 14,
+    monthly: 1,
+    quarterly: 3,
+    semiannual: 6,
+    yearly: 12,
+}
+
+const toDateOnly = (value: string) => {
+    const datePart = value.split('T')[0].split(' ')[0]
+    const [year, month, day] = datePart.split('-').map(Number)
+
+    return new Date(year, month - 1, day)
+}
+
+const formatDateOnly = (value: Date) => {
+    return value.toISOString().slice(0, 10)
+}
+
+const addMonths = (date: Date, months: number) => {
+    const nextDate = new Date(date)
+    nextDate.setMonth(nextDate.getMonth() + months)
+    return nextDate
+}
+
+const addYears = (date: Date, years: number) => {
+    return addMonths(date, years * 12)
+}
+
+const addInterval = (date: Date, recurrence: string) => {
+    const nextDate = new Date(date)
+
+    if (recurrence === 'weekly' || recurrence === 'biweekly') {
+        nextDate.setDate(nextDate.getDate() + recurrenceIntervals[recurrence])
+        return nextDate
+    }
+
+    return addMonths(nextDate, recurrenceIntervals[recurrence] ?? 1)
+}
+
+const buildInvoiceEvents = (invoice: InvoiceEvent) => {
+    if (invoice.type !== 'recurring') {
+        return [
+            {
+                id: invoice.id.toString(),
+                title: invoice.title,
+                start: invoice.start_date,
+                allDay: true,
+                extendedProps: {
+                    amountLabel: getAmountLabel(invoice),
+                    type: invoice.type,
+                    recurrence: invoice.recurrence,
+                },
+                classNames: getEventClassNames(invoice),
+            },
+        ]
+    }
+
+    const events = []
+    const startDate = toDateOnly(invoice.start_date)
+    const endDate = invoice.end_date ? toDateOnly(invoice.end_date) : addYears(startDate, 10)
+    let currentDate = new Date(startDate)
+
+    while (currentDate <= endDate) {
+        events.push({
+            id: `${invoice.id}-${formatDateOnly(currentDate)}`,
+            title: invoice.title,
+            start: formatDateOnly(currentDate),
+            allDay: true,
+            extendedProps: {
+                amountLabel: getAmountLabel(invoice),
+                type: invoice.type,
+                recurrence: invoice.recurrence,
+            },
+            classNames: getEventClassNames(invoice),
+        })
+
+        currentDate = addInterval(currentDate, invoice.recurrence ?? 'monthly')
+    }
+
+    return events
+}
+
 const getEventClassNames = (event: InvoiceEvent) => {
     const baseClass = 'invoice-event'
     const typeClass = `invoice-event--${event.type.toLowerCase()}`
@@ -41,18 +125,7 @@ const calendarOptions = computed(() => ({
     buttonText: {
         today: 'Today',
     },
-    events: props.invoices.map((invoice) => ({ 
-        id: invoice.id.toString(),
-        title: invoice.title,
-        start: invoice.start_date,
-        end: invoice.end_date,
-        extendedProps: {
-            amountLabel: getAmountLabel(invoice),
-            type: invoice.type,
-            recurrence: invoice.recurrence,
-        },
-        classNames: getEventClassNames(invoice),
-    })), // repeat for testing
+    events: props.invoices.flatMap((invoice) => buildInvoiceEvents(invoice)),
     eventContent: (eventInfo: EventContentArg) => ({
         html: `
             <div class="invoice-event-content">
