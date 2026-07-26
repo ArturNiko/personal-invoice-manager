@@ -1,34 +1,28 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import InvoiceCalendar from './Components/InvoiceCalendar.vue'
+import { onMounted, ref } from 'vue'
+import axios from 'axios'
+import { useRoute, RouterView } from 'vue-router'
 
-type ViewMode = 'calendar' | 'invoices'
+import type { InvoiceIndexResponse, InvoiceEvent } from '@/Types/Invoice'
 
-const viewMode = ref<ViewMode>('calendar')
+const invoices = ref<InvoiceEvent[]>([])
+const route = useRoute()
 
-const invoicePlaceholders = [
-    {
-        id: 'INV-1024',
-        client: 'Northwind Studio',
-        amount: '$2,450',
-        due: 'Due in 3 days',
-        status: 'Awaiting payment',
-    },
-    {
-        id: 'INV-1025',
-        client: 'Atlas Supply Co.',
-        amount: '$890',
-        due: 'Due next week',
-        status: 'Draft',
-    },
-    {
-        id: 'INV-1026',
-        client: 'Summit Labs',
-        amount: '$1,320',
-        due: 'Sent yesterday',
-        status: 'Tracking open',
-    },
-]
+onMounted(async () => {
+    try {
+        const response = await axios.get<InvoiceIndexResponse>('/invoices')
+
+        if (response.status !== 200) {
+            console.error('Failed to fetch invoices:', response.statusText)
+            return
+        }
+
+        invoices.value = response.data.data
+    } catch (error) {
+        console.error('Error fetching invoices:', error)
+    }
+})
+
 </script>
 
 <template>
@@ -38,122 +32,62 @@ const invoicePlaceholders = [
         <div class="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
             <header class="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
                 <div class="space-y-2">
-                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300/80">Personal Invoice Reader</p>
-                    <div>
-                        <h1 class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Track invoices from the calendar or the list view</h1>
-                        <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-                            Use the calendar for payment timing and reminders now, then switch to the invoice list once the data layer is ready.
-                        </p>
-                    </div>
+                    <h1 class="text-2xl font-semibold uppercase tracking-[0.3em] text-cyan-300/80">Personal Invoice Manager</h1>
+                    <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+                        Never lose track of an invoice again.
+                    </p>
                 </div>
 
                 <div class="inline-flex rounded-2xl border border-white/10 bg-slate-900/70 p-1 shadow-lg shadow-slate-950/30">
-                    <button
-                        type="button"
+                    <RouterLink
+                        to="/calendar"
                         class="rounded-xl px-4 py-2 text-sm font-medium transition"
-                        :class="viewMode === 'calendar' ? 'bg-white text-slate-950 shadow' : 'text-slate-300 hover:text-white'"
-                        @click="viewMode = 'calendar'"
+                        :class="route.path === '/calendar' ? 'bg-white text-slate-950 shadow' : 'text-slate-300 hover:text-white'"
                     >
                         Calendar
-                    </button>
-                    <button
-                        type="button"
+                    </RouterLink>
+                    <RouterLink
+                        to="/list"
                         class="rounded-xl px-4 py-2 text-sm font-medium transition"
-                        :class="viewMode === 'invoices' ? 'bg-white text-slate-950 shadow' : 'text-slate-300 hover:text-white'"
-                        @click="viewMode = 'invoices'"
+                        :class="route.path === '/list' ? 'bg-white text-slate-950 shadow' : 'text-slate-300 hover:text-white'"
                     >
-                        Invoices
-                    </button>
+                        List
+                    </RouterLink>
                 </div>
             </header>
 
-            <section class="grid gap-4 sm:grid-cols-3">
+            <section class="grid gap-4 sm:grid-cols-2">
                 <article class="rounded-2xl border border-white/10 bg-slate-900/75 p-4 backdrop-blur">
                     <p class="text-xs uppercase tracking-[0.25em] text-slate-400">View</p>
-                    <p class="mt-2 text-2xl font-semibold text-white">{{ viewMode === 'calendar' ? 'Calendar' : 'Invoices' }}</p>
-                    <p class="mt-1 text-sm text-slate-400">Toggle between scheduling and list management.</p>
+                    <p class="mt-2 text-2xl font-semibold text-white">
+                        {{ route.path === '/list' ? 'List View' : 'Calendar View' }}
+                    </p>
+                    <p class="mt-1 text-sm text-slate-400">
+                        Switch between a chronological list or an interactive calendar to manage your invoices.
+                    </p>
                 </article>
-                <article class="rounded-2xl border border-white/10 bg-slate-900/75 p-4 backdrop-blur">
-                    <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Upcoming</p>
-                    <p class="mt-2 text-2xl font-semibold text-white">3 reminders</p>
-                    <p class="mt-1 text-sm text-slate-400">Placeholder events are already in the calendar.</p>
-                </article>
+
                 <article class="rounded-2xl border border-white/10 bg-slate-900/75 p-4 backdrop-blur">
                     <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Invoices</p>
-                    <p class="mt-2 text-2xl font-semibold text-white">Coming soon</p>
-                    <p class="mt-1 text-sm text-slate-400">The list view is ready for real invoice data later.</p>
+                    <p class="mt-2 text-2xl font-semibold text-white">{{ invoices.length }}</p>
+                    <p class="mt-1 text-sm text-slate-400">
+                        Track upcoming due dates and keep all your invoices organized in one place.
+                    </p>
                 </article>
             </section>
 
             <main class="min-h-0 flex-1">
-                <Transition name="fade" mode="out-in">
-                    <InvoiceCalendar v-if="viewMode === 'calendar'" key="calendar" />
-
-                    <section
-                        v-else
-                        key="invoices"
-                        class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
-                    >
-                        <div class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
-                            <div>
-                                <h2 class="text-lg font-semibold text-white">Invoice list</h2>
-                                <p class="text-sm text-slate-400">A placeholder structure for the future invoice feed.</p>
-                            </div>
-                            <span class="rounded-full border border-sky-400/30 bg-sky-400/10 px-3 py-1 text-xs font-medium text-sky-200">Placeholder</span>
-                        </div>
-
-                        <div class="flex-1 overflow-auto p-4 sm:p-6">
-                            <div class="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
-                                <div class="space-y-3">
-                                    <article
-                                        v-for="invoice in invoicePlaceholders"
-                                        :key="invoice.id"
-                                        class="rounded-2xl border border-white/10 bg-slate-950/40 p-4 transition hover:border-cyan-400/40 hover:bg-slate-950/60"
-                                    >
-                                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                            <div>
-                                                <p class="text-sm font-semibold text-white">{{ invoice.id }}</p>
-                                                <p class="text-sm text-slate-400">{{ invoice.client }}</p>
-                                            </div>
-                                            <div class="text-left sm:text-right">
-                                                <p class="text-lg font-semibold text-white">{{ invoice.amount }}</p>
-                                                <p class="text-sm text-slate-400">{{ invoice.due }}</p>
-                                            </div>
-                                        </div>
-                                        <div class="mt-4 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-slate-400">
-                                            <span>{{ invoice.status }}</span>
-                                            <span class="text-cyan-300">Ready for data</span>
-                                        </div>
-                                    </article>
-                                </div>
-
-                                <aside class="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-5">
-                                    <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Future panel</p>
-                                    <h3 class="mt-2 text-xl font-semibold text-white">Invoice details</h3>
-                                    <p class="mt-2 text-sm leading-6 text-slate-400">
-                                        This area can later hold filters, search, invoice preview, or synced actions without changing the landing shell.
-                                    </p>
-                                    <div class="mt-6 space-y-3 text-sm text-slate-300">
-                                        <div class="rounded-xl border border-white/10 bg-white/5 p-3">Client metadata</div>
-                                        <div class="rounded-xl border border-white/10 bg-white/5 p-3">Payment status</div>
-                                        <div class="rounded-xl border border-white/10 bg-white/5 p-3">Invoice actions</div>
-                                    </div>
-                                </aside>
-                            </div>
-                        </div>
-                    </section>
-                </Transition>
+                <RouterView v-slot="{ Component }">
+                    <Transition name="fade" mode="out-in">
+                        <component :is="Component" :key="route.path" :invoices="invoices" />
+                    </Transition>
+                </RouterView>
             </main>
         </div>
     </div>
 </template>
 
 <style scoped>
-.invoice-calendar .fc-header-toolbar .fc-prev-button {
-    background-color: #7c3aed !important;
-    color: white;
-}
-
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 180ms ease, transform 180ms ease;
