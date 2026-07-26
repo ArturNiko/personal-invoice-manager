@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import axios from "axios";
 import { getCurrencySymbol } from "@/Utils/Currency";
 import { useRoute, useRouter } from "vue-router";
 
 import type { InvoiceEvent } from "@/Types/Invoice";
+import Badge from "@/Components/Badge.vue";
 
 const props = defineProps<{ invoices: InvoiceEvent[] }>();
 
 const route = useRoute();
 const router = useRouter();
+const deletingInvoiceId = ref<number | null>(null);
 
 const searchQuery = computed({
     get: () => (typeof route.query.q === "string" ? route.query.q : ""),
@@ -99,16 +102,64 @@ const formatAmount = (invoice: InvoiceEvent) => {
 
 const getTypeClasses = (type: string) => {
     return type === "recurring"
-        ? "border-teal-400/35 bg-teal-500/10 text-teal-100"
-        : "border-sky-400/35 bg-sky-500/10 text-sky-100";
+        ? "teal"
+        : "sky";
 };
 
 const getTypeLabel = (type: string) => {
     return type === "recurring" ? "Recurring" : "One-time";
 };
 
+const getStatusClasses = (status: string) => {
+    switch (status) {
+        case "paid":
+            return "emerald";
+        case "overdue":
+            return "rose";
+        default:
+            return "amber";
+    }
+};
+
+const getStatusLabel = (status: string) => {
+    switch (status) {
+        case "paid":
+            return "Paid";
+        case "overdue":
+            return "Overdue";
+        default:
+            return "Pending";
+    }
+};
+
 const editInvoice = (id: number) => {
     router.push({ name: "invoice-edit", params: { id: id.toString() } });
+};
+
+const deleteInvoice = async (id: number) => {
+    const confirmed = window.confirm(
+        "Delete this invoice? This cannot be undone.",
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    deletingInvoiceId.value = id;
+
+    try {
+        await axios.delete(`/invoices/${id}`);
+        await router.replace({
+            query: {
+                ...route.query,
+                deleted: String(Date.now()),
+            },
+        });
+    } catch (error) {
+        console.error("Failed to delete invoice:", error);
+    } finally {
+        deletingInvoiceId.value = null;
+    }
 };
 </script>
 
@@ -125,10 +176,7 @@ const editInvoice = (id: number) => {
                     Event-backed invoice entries synced from your API feed.
                 </p>
             </div>
-            <span
-                class="rounded-full border border-sky-400/30 bg-sky-400/10 px-3 py-1 text-xs font-medium text-sky-200"
-                >{{ visibleInvoices.length }} items</span
-            >
+            <Badge variant="sky" size="md">{{ visibleInvoices.length }} items</Badge>
         </div>
 
         <div class="border-b border-white/10 p-4 sm:p-6">
@@ -233,19 +281,31 @@ const editInvoice = (id: number) => {
                         <div
                             class="mt-4 flex items-center justify-between gap-2 text-xs uppercase tracking-[0.2em]"
                         >
-                            <span
-                                class="rounded-full border px-2.5 py-1 font-medium"
-                                :class="getTypeClasses(invoice.type)"
-                            >
-                                {{ getTypeLabel(invoice.type) }}
-                            </span>
-                            <button
-                                type="button"
-                                class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-medium text-slate-300 transition hover:border-cyan-400/40 hover:text-white"
-                                @click="editInvoice(invoice.id)"
-                            >
-                                Edit
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <Badge :variant="getTypeClasses(invoice.type)">
+                                    {{ getTypeLabel(invoice.type) }}
+                                </Badge>
+                                <Badge :variant="getStatusClasses(invoice.status)">
+                                    {{ getStatusLabel(invoice.status) }}
+                                </Badge>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-medium text-slate-300 transition hover:border-cyan-400/40 hover:text-white"
+                                    @click="editInvoice(invoice.id)"
+                                >
+                                    Edit
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-full border border-red-400/30 bg-red-500/10 px-2.5 py-1 font-medium text-red-100 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                    :disabled="deletingInvoiceId === invoice.id"
+                                    @click="deleteInvoice(invoice.id)"
+                                >
+                                    {{ deletingInvoiceId === invoice.id ? 'Deleting...' : 'Delete' }}
+                                </button>
+                            </div>
                         </div>
                     </article>
                 </div>

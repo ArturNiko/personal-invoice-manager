@@ -321,7 +321,7 @@ const deleteInvoice = async () => {
                         class="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3"
                     >
                         <p class="text-sm font-medium text-slate-300">Type</p>
-                        <p class="mt-1 text-white">
+                        <p class="mt-4 text-white">
                             {{
                                 form.type === "recurring"
                                     ? "Recurring"
