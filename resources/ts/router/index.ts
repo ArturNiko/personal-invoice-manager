@@ -8,6 +8,11 @@ export const router = createRouter({
             redirect: '/calendar',
         },
         {
+            path: '/create',
+            name: 'create',
+            component: () => import('@/Pages/InvoiceCreateView.vue'),
+        },
+        {
             path: '/calendar',
             name: 'calendar',
             component: () => import('@/Pages/CalendarView.vue'),

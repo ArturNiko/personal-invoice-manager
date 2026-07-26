@@ -8,6 +8,7 @@ Route::get('/', function () {
 });
 
 Route::get('/invoices', [InvoiceController::class, 'index']);
+Route::post('/invoices', [InvoiceController::class, 'store']);
 
 Route::view('/{any}', 'app')
     ->where('any', '^(?!invoices$).*$');

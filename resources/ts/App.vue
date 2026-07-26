@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import axios from 'axios'
-import { useRoute, RouterView } from 'vue-router'
+import { useRoute, RouterLink, RouterView } from 'vue-router'
 
 import type { InvoiceIndexResponse, InvoiceEvent } from '@/Types/Invoice'
 
@@ -40,11 +40,10 @@ onMounted(async () => {
 })
 
 watch(
-    () => route.query,
+    () => route.fullPath,
     async () => {
         await fetchInvoices()
     },
-    { deep: true },
 )
 
 </script>
@@ -63,6 +62,13 @@ watch(
                 </div>
 
                 <div class="inline-flex rounded-2xl border border-white/10 bg-slate-900/70 p-1 shadow-lg shadow-slate-950/30">
+                    <RouterLink
+                        to="/create"
+                        class="rounded-xl px-4 py-2 text-sm font-medium transition"
+                        :class="route.path === '/create' ? 'bg-white text-slate-950 shadow' : 'text-slate-300 hover:text-white'"
+                    >
+                        Create
+                    </RouterLink>
                     <RouterLink
                         to="/calendar"
                         class="rounded-xl px-4 py-2 text-sm font-medium transition"
