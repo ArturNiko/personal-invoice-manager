@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { getCurrencySymbol } from '@/Utils/Currency'
+import { computed } from "vue";
+import { useRouter } from "vue-router";
+import { getCurrencySymbol } from "@/Utils/Currency";
 
-import FullCalendar from '@fullcalendar/vue3'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import interactionPlugin from '@fullcalendar/interaction'
+import FullCalendar from "@fullcalendar/vue3";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
 
-import type { EventContentArg } from '@fullcalendar/core'
-import type { InvoiceEvent } from '@/Types/Invoice'
+import type { EventClickArg, EventContentArg } from "@fullcalendar/core";
+import type { InvoiceEvent } from "@/Types/Invoice";
 
-
-const props = defineProps<{ invoices: InvoiceEvent[] }>()
+const props = defineProps<{ invoices: InvoiceEvent[] }>();
+const router = useRouter();
 
 const recurrenceIntervals: Record<string, number> = {
     weekly: 7,
@@ -19,42 +20,42 @@ const recurrenceIntervals: Record<string, number> = {
     quarterly: 3,
     semiannual: 6,
     yearly: 12,
-}
+};
 
 const toDateOnly = (value: string) => {
-    const datePart = value.split('T')[0].split(' ')[0]
-    const [year, month, day] = datePart.split('-').map(Number)
+    const datePart = value.split("T")[0].split(" ")[0];
+    const [year, month, day] = datePart.split("-").map(Number);
 
-    return new Date(year, month - 1, day)
-}
+    return new Date(year, month - 1, day);
+};
 
 const formatDateOnly = (value: Date) => {
-    return value.toISOString().slice(0, 10)
-}
+    return value.toISOString().slice(0, 10);
+};
 
 const addMonths = (date: Date, months: number) => {
-    const nextDate = new Date(date)
-    nextDate.setMonth(nextDate.getMonth() + months)
-    return nextDate
-}
+    const nextDate = new Date(date);
+    nextDate.setMonth(nextDate.getMonth() + months);
+    return nextDate;
+};
 
 const addYears = (date: Date, years: number) => {
-    return addMonths(date, years * 12)
-}
+    return addMonths(date, years * 12);
+};
 
 const addInterval = (date: Date, recurrence: string) => {
-    const nextDate = new Date(date)
+    const nextDate = new Date(date);
 
-    if (recurrence === 'weekly' || recurrence === 'biweekly') {
-        nextDate.setDate(nextDate.getDate() + recurrenceIntervals[recurrence])
-        return nextDate
+    if (recurrence === "weekly" || recurrence === "biweekly") {
+        nextDate.setDate(nextDate.getDate() + recurrenceIntervals[recurrence]);
+        return nextDate;
     }
 
-    return addMonths(nextDate, recurrenceIntervals[recurrence] ?? 1)
-}
+    return addMonths(nextDate, recurrenceIntervals[recurrence] ?? 1);
+};
 
 const buildInvoiceEvents = (invoice: InvoiceEvent) => {
-    if (invoice.type !== 'recurring') {
+    if (invoice.type !== "recurring") {
         return [
             {
                 id: invoice.id.toString(),
@@ -68,88 +69,121 @@ const buildInvoiceEvents = (invoice: InvoiceEvent) => {
                 },
                 classNames: getEventClassNames(invoice),
             },
-        ]
+        ];
     }
 
-    const events = []
-    const startDate = toDateOnly(invoice.start_date)
-    const endDate = invoice.end_date ? toDateOnly(invoice.end_date) : addYears(startDate, 10)
-    let currentDate = new Date(startDate)
+    const events = [];
+    const startDate = toDateOnly(invoice.start_date);
+    const endDate = invoice.end_date
+        ? toDateOnly(invoice.end_date)
+        : addYears(startDate, 10);
+    const excludedDates = new Set(invoice.recurrence_exceptions ?? []);
+    let currentDate = new Date(startDate);
 
     while (currentDate <= endDate) {
-        events.push({
-            id: `${invoice.id}-${formatDateOnly(currentDate)}`,
-            title: invoice.title,
-            start: formatDateOnly(currentDate),
-            allDay: true,
-            extendedProps: {
-                amountLabel: getAmountLabel(invoice),
-                type: invoice.type,
-                recurrence: invoice.recurrence,
-            },
-            classNames: getEventClassNames(invoice),
-        })
+        const currentDateString = formatDateOnly(currentDate);
 
-        currentDate = addInterval(currentDate, invoice.recurrence ?? 'monthly')
+        if (!excludedDates.has(currentDateString)) {
+            events.push({
+                id: `${invoice.id}-${currentDateString}`,
+                title: invoice.title,
+                start: currentDateString,
+                allDay: true,
+                extendedProps: {
+                    amountLabel: getAmountLabel(invoice),
+                    type: invoice.type,
+                    recurrence: invoice.recurrence,
+                },
+                classNames: getEventClassNames(invoice),
+            });
+        }
+
+        currentDate = addInterval(currentDate, invoice.recurrence ?? "monthly");
     }
 
-    return events
-}
+    return events;
+};
 
 const getEventClassNames = (event: InvoiceEvent) => {
-    const baseClass = 'invoice-event'
-    const typeClass = `invoice-event--${event.type.toLowerCase()}`
-    return [baseClass, typeClass]
-}
+    const baseClass = "invoice-event";
+    const typeClass = `invoice-event--${event.type.toLowerCase()}`;
+    return [baseClass, typeClass];
+};
 
 const getAmountLabel = (event: InvoiceEvent) => {
-    return event.recurrence 
-        ? `${getCurrencySymbol(event.currency)}${event.price_occurrence} / ${event.recurrence}` 
-        : `${getCurrencySymbol(event.currency)}${event.price_total}`
-}
-    
+    return event.recurrence
+        ? `${getCurrencySymbol(event.currency)}${event.price_occurrence} / ${event.recurrence}`
+        : `${getCurrencySymbol(event.currency)}${event.price_total}`;
+};
+
 const calendarOptions = computed(() => ({
     plugins: [dayGridPlugin, interactionPlugin],
-    initialView: 'dayGridMonth',
-    height: 'auto',
-    contentHeight: 'auto',
+    initialView: "dayGridMonth",
+    height: "auto",
+    contentHeight: "auto",
     aspectRatio: 1.45,
     expandRows: true,
     fixedWeekCount: true,
     dayMaxEventRows: 3,
     headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: '',
+        left: "prev,next today",
+        center: "title",
+        right: "",
     },
     buttonText: {
-        today: 'Today',
+        today: "Today",
     },
     events: props.invoices.flatMap((invoice) => buildInvoiceEvents(invoice)),
+    eventClick: (eventInfo: EventClickArg) => {
+        const eventId = eventInfo.event.id;
+
+        if (eventId.includes("-")) {
+            const [invoiceId] = eventId.split("-");
+            router.push({
+                name: "invoice-edit",
+                params: { id: invoiceId },
+                query: { occurrence: eventInfo.event.startStr },
+            });
+            return;
+        }
+
+        router.push({ name: "invoice-edit", params: { id: eventId } });
+    },
     eventContent: (eventInfo: EventContentArg) => ({
         html: `
             <div class="invoice-event-content">
                 <div class="invoice-event-title">${eventInfo.event.title}</div>
-                <div class="invoice-event-meta">${eventInfo.event.extendedProps.amountLabel ?? ''}</div>
+                <div class="invoice-event-meta">${eventInfo.event.extendedProps.amountLabel ?? ""}</div>
             </div>
         `,
     }),
-}))
-
+}));
 </script>
 
 <template>
-    <section class="calendar-shell flex h-full min-h-[38rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl">
-        <div class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
+    <section
+        class="calendar-shell flex h-full min-h-[38rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
+    >
+        <div
+            class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6"
+        >
             <div>
                 <h2 class="text-lg font-semibold text-white">Calendar</h2>
-                <p class="text-sm text-slate-400">Monthly planning view with invoice-related reminders.</p>
+                <p class="text-sm text-slate-400">
+                    Monthly planning view with invoice-related reminders.
+                </p>
             </div>
-            <span class="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">Full size</span>
+            <span
+                class="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200"
+                >Full size</span
+            >
         </div>
 
         <div class="flex-1 p-3 sm:p-5">
-            <FullCalendar :options="calendarOptions" class="invoice-calendar" />
+            <FullCalendar
+                :options="calendarOptions"
+                class="invoice-calendar"
+            />
         </div>
     </section>
 </template>
@@ -257,7 +291,7 @@ const calendarOptions = computed(() => ({
 
 /* Soft accent bar on the left side of each event */
 .invoice-calendar.fc .fc-daygrid-event.invoice-event::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0 auto 0 0;
     width: 0.28rem;
@@ -267,22 +301,34 @@ const calendarOptions = computed(() => ({
 
 /* Individual event themes */
 .invoice-calendar.fc .fc-daygrid-event.invoice-event {
-    background: linear-gradient(135deg, rgba(88, 28, 135, 0.9), rgba(109, 40, 217, 0.82));
+    background: linear-gradient(
+        135deg,
+        rgba(88, 28, 135, 0.9),
+        rgba(109, 40, 217, 0.82)
+    );
 }
 
 .invoice-calendar.fc .fc-daygrid-event.invoice-event--one-time {
-    background: linear-gradient(135deg, rgba(30, 64, 175, 0.9), rgba(37, 99, 235, 0.82));
+    background: linear-gradient(
+        135deg,
+        rgba(30, 64, 175, 0.9),
+        rgba(37, 99, 235, 0.82)
+    );
 }
 
 .invoice-calendar.fc .fc-daygrid-event.invoice-event--recurring {
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.92), rgba(20, 184, 166, 0.75));
+    background: linear-gradient(
+        135deg,
+        rgba(15, 118, 110, 0.92),
+        rgba(20, 184, 166, 0.75)
+    );
 }
 
 /* Event pill inner padding */
 .invoice-calendar.fc .fc-daygrid-event.invoice-event .fc-event-main,
 .invoice-calendar.fc .fc-daygrid-event.invoice-event .fc-event-main-frame,
 .invoice-calendar.fc .fc-daygrid-event.invoice-event .invoice-event-content {
-    padding: 0.5rem 0.8rem 0.5rem 0.95rem;
+    padding: 0.5rem 0.8rem 0.5rem 0.5rem;
 }
 
 /* Custom event layout inside the pill */
@@ -319,5 +365,4 @@ const calendarOptions = computed(() => ({
     filter: brightness(1.08) saturate(1.02);
     transform: translateY(-1px);
 }
-
 </style>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import InvoiceList from '@/Components/InvoiceList.vue'
+import InvoiceList from "@/Components/InvoiceList.vue";
 
-import type { InvoiceEvent } from '@/Types/Invoice'
+import type { InvoiceEvent } from "@/Types/Invoice";
 
-const props = defineProps<{ invoices: InvoiceEvent[] }>()
+const props = defineProps<{ invoices: InvoiceEvent[] }>();
 </script>
 
 <template>

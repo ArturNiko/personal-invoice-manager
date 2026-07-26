@@ -2,6 +2,7 @@ export interface InvoiceEvent {
     id: number
     title: string
     description?: string
+    status: 'pending' | 'paid' | 'overdue'
     price_occurrence: number
     price_total: number
     currency: string

@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import InputLabel from './InputLabel.vue'
+import InputLabel from "./InputLabel.vue";
 
 const props = defineProps<{
-    modelValue: string
-    label: string
+    modelValue: string;
+    label: string;
     options: ReadonlyArray<{
-        readonly label: string
-        readonly value: string
-    }>
-    disabled?: boolean
-    required?: boolean
-}>()
+        readonly label: string;
+        readonly value: string;
+    }>;
+    disabled?: boolean;
+    required?: boolean;
+}>();
 
 const emit = defineEmits<{
-    'update:modelValue': [value: string]
-}>()
+    "update:modelValue": [value: string];
+}>();
 
 const handleChange = (event: Event) => {
-    emit('update:modelValue', (event.target as HTMLSelectElement).value)
-}
+    emit("update:modelValue", (event.target as HTMLSelectElement).value);
+};
 </script>
 
 <template>
@@ -30,7 +30,11 @@ const handleChange = (event: Event) => {
             class="input-select w-full rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 pr-11 text-white outline-none appearance-none focus:border-cyan-400/50 disabled:cursor-not-allowed disabled:opacity-50"
             @change="handleChange"
         >
-            <option v-for="option in props.options" :key="option.value" :value="option.value">
+            <option
+                v-for="option in props.options"
+                :key="option.value"
+                :value="option.value"
+            >
                 {{ option.label }}
             </option>
         </select>

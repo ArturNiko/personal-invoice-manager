@@ -13,6 +13,11 @@ export const router = createRouter({
             component: () => import('@/Pages/InvoiceCreateView.vue'),
         },
         {
+            path: '/invoices/:id/edit',
+            name: 'invoice-edit',
+            component: () => import('@/Pages/InvoiceEditView.vue'),
+        },
+        {
             path: '/calendar',
             name: 'calendar',
             component: () => import('@/Pages/CalendarView.vue'),
