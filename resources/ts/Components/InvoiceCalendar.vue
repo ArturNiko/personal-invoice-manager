@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { getCurrencySymbol } from '@/Utils/Currency'
-import Badge from '@/Components/Badge.vue'
+import { useRouter } from 'vue-router'
 
+import Badge from '@/Components/Badge.vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
@@ -10,7 +11,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import type { EventContentArg } from '@fullcalendar/core'
 import type { InvoiceEvent } from '@/Types/Invoice'
 
-
+const router = useRouter()
 const props = defineProps<{ invoices: InvoiceEvent[] }>()
 
 const recurrenceIntervals: Record<string, number> = {
@@ -108,6 +109,11 @@ const getAmountLabel = (event: InvoiceEvent) => {
         ? `${getCurrencySymbol(event.currency)}${event.price_occurrence} / ${event.recurrence}` 
         : `${getCurrencySymbol(event.currency)}${event.price_total}`
 }
+
+const handleEventClick = (clickEvent: { event: InvoiceEvent }) => {
+    // how do i get the data
+    router.push({ name: 'invoice-edit', params: { id: clickEvent.event.id } })
+}
     
 const calendarOptions = computed(() => ({
     plugins: [dayGridPlugin, interactionPlugin],
@@ -126,6 +132,7 @@ const calendarOptions = computed(() => ({
     buttonText: {
         today: 'Today',
     },
+    
     events: props.invoices.flatMap((invoice) => buildInvoiceEvents(invoice)),
     eventContent: (eventInfo: EventContentArg) => ({
         html: `
@@ -135,7 +142,9 @@ const calendarOptions = computed(() => ({
             </div>
         `,
     }),
+    eventClick: handleEventClick
 }))
+
 
 </script>
 
@@ -286,7 +295,6 @@ const calendarOptions = computed(() => ({
 .invoice-calendar.fc .fc-daygrid-event.invoice-event .invoice-event-content {
     padding: 0.5rem 0.8rem 0.5rem 0.5rem;
     cursor: pointer;
-    
 }
 
 /* Custom event layout inside the pill */
