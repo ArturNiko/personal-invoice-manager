@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { getCurrencySymbol } from '@/Utils/Currency'
 import { useRouter } from 'vue-router'
 
@@ -8,11 +8,34 @@ import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 
-import type { EventContentArg } from '@fullcalendar/core'
+import type { EventClickArg, EventContentArg } from '@fullcalendar/core'
 import type { InvoiceEvent } from '@/Types/Invoice'
 
 const router = useRouter()
 const props = defineProps<{ invoices: InvoiceEvent[] }>()
+const isCompactView = ref(false)
+
+const updateCalendarView = () => {
+    const width = window.innerWidth
+    isCompactView.value = width < 768
+}
+
+const calendarView = computed(() => {
+    if (isCompactView.value) {
+        return 'dayGridWeek'
+    }
+
+    return 'dayGridMonth'
+})
+
+onMounted(() => {
+    updateCalendarView()
+    window.addEventListener('resize', updateCalendarView)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateCalendarView)
+})
 
 const recurrenceIntervals: Record<string, number> = {
     weekly: 7,
@@ -88,6 +111,7 @@ const buildInvoiceEvents = (invoice: InvoiceEvent) => {
                 amountLabel: getAmountLabel(invoice),
                 type: invoice.type,
                 recurrence: invoice.recurrence,
+                invoiceId: invoice.id,
             },
             classNames: getEventClassNames(invoice),
         })
@@ -110,20 +134,24 @@ const getAmountLabel = (event: InvoiceEvent) => {
         : `${getCurrencySymbol(event.currency)}${event.price_total}`
 }
 
-const handleEventClick = (clickEvent: { event: InvoiceEvent }) => {
-    // how do i get the data
-    router.push({ name: 'invoice-edit', params: { id: clickEvent.event.id } })
+const handleEventClick = (clickEvent: EventClickArg) => {
+    router.push({ 
+        name: 'invoice-edit', 
+        params: { 
+            id: clickEvent.event.extendedProps.invoiceId ?? clickEvent.event.id
+        } 
+    })
 }
     
 const calendarOptions = computed(() => ({
     plugins: [dayGridPlugin, interactionPlugin],
-    initialView: 'dayGridMonth',
+    initialView: calendarView.value,
     height: 'auto',
     contentHeight: 'auto',
-    aspectRatio: 1.45,
+    aspectRatio: isCompactView.value ? 1.1 : 1.45,
     expandRows: true,
     fixedWeekCount: true,
-    dayMaxEventRows: 3,
+    dayMaxEventRows: isCompactView.value ? 2 : 3,
     headerToolbar: {
         left: 'prev,next today',
         center: 'title',
@@ -153,13 +181,20 @@ const calendarOptions = computed(() => ({
         <div class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
             <div>
                 <h2 class="text-lg font-semibold text-white">Calendar</h2>
-                <p class="text-sm text-slate-400">Monthly planning view with invoice-related reminders.</p>
+                <p class="text-sm text-slate-400 mr-4">Monthly planning view with invoice-related reminders.</p>
             </div>
             <Badge variant="emerald" size="md">Full size</Badge>
         </div>
 
         <div class="flex-1 p-3 sm:p-5">
-            <FullCalendar :options="calendarOptions" class="invoice-calendar" />
+            <div class="calendar-scroll">
+                <FullCalendar
+                    :key="calendarView"
+                    :options="calendarOptions"
+                    class="invoice-calendar"
+                    :class="{ 'invoice-calendar--compact': isCompactView }"
+                />
+            </div>
         </div>
     </section>
 </template>
@@ -169,6 +204,14 @@ const calendarOptions = computed(() => ({
 .invoice-calendar.fc {
     height: 100%;
     color: rgb(226 232 240);
+}
+
+.calendar-scroll {
+    overflow-x: auto;
+}
+
+.invoice-calendar--compact.fc {
+    min-width: 44rem;
 }
 
 /* Forces the calendar view area to keep enough height for the month grid */

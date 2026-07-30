@@ -26,7 +26,7 @@ const sizeClasses = {
 }
 
 const badgeClasses = computed(() => [
-    'inline-flex items-center rounded-full border font-medium leading-none',
+    'inline-flex items-center rounded-full border font-medium leading-none w-fit shrink-0 whitespace-nowrap',
     variantClasses[props.variant],
     sizeClasses[props.size],
 ])
