@@ -18,4 +18,12 @@ enum InvoiceType: string
     public static function isValid(string $value): bool {
         return in_array($value, self::getAll());
     }
+
+    public static function fromString(string $value): ?self {
+        return match ($value) {
+            'one-time' => self::ONE_TIME,
+            'recurring' => self::RECURRING,
+            default => null,
+        };
+    }
 }

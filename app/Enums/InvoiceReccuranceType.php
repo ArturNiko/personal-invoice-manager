@@ -26,4 +26,16 @@ enum InvoiceReccuranceType: string
     public static function isValid(string $value): bool {
         return in_array($value, self::getAll());
     }
+
+    public static function fromString(string $value): ?self {
+        return match ($value) {
+            'weekly' => self::WEEKLY,
+            'biweekly' => self::BIWEEKLY,
+            'monthly' => self::MONTHLY,
+            'quarterly' => self::QUARTERLY,
+            'semiannual' => self::SEMIANNUAL,
+            'yearly' => self::YEARLY,
+            default => null,
+        };
+    }
 }

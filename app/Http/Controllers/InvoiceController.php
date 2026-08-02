@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\InvoiceImportState;
+use App\Http\Requests\InvoiceImportRequest;
+use App\Jobs\ProcessInvoice;
 use App\Models\Invoice;
+use App\Models\InvoiceImport;
 use App\Http\Requests\InvoiceIndexRequest;
 use App\Http\Requests\InvoicesRequest;
 
@@ -71,5 +75,23 @@ class InvoiceController extends Controller
         $invoice = Invoice::create($validated);
 
         return response()->json($invoice, 201);
+    }
+
+    public function import(InvoiceImportRequest $request)
+    {
+        $file = $request->file('invoice');
+
+        $path = $file->store('invoice-uploads');
+
+        $invoiceImport = InvoiceImport::create([
+            'file_path' => $path,
+            'status' => InvoiceImportState::PENDING->value,
+        ]);
+
+        ProcessInvoice::dispatch($invoiceImport->id);
+
+        return response()->json([
+            'message' => 'Invoice is being processed'
+        ]);
     }
 }

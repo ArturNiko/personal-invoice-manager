@@ -2,18 +2,19 @@
 
 namespace App\Enums;
 
-
-enum InvoiceStatus: string
+enum InvoiceImportState: string
 {
     case PENDING = 'pending';
-    case PAID = 'paid';
-    case OVERDUE = 'overdue';
+    case PROCESSING = 'processing';
+    case COMPLETED = 'completed';
+    case FAILED = 'failed';
 
     public static function getAll(): array {
         return [
             self::PENDING->value,
-            self::PAID->value,
-            self::OVERDUE->value,
+            self::PROCESSING->value,
+            self::COMPLETED->value,
+            self::FAILED->value,
         ];
     }
 
@@ -24,8 +25,9 @@ enum InvoiceStatus: string
     public static function fromString(string $value): ?self {
         return match ($value) {
             'pending' => self::PENDING,
-            'paid' => self::PAID,
-            'overdue' => self::OVERDUE,
+            'processing' => self::PROCESSING,
+            'completed' => self::COMPLETED,
+            'failed' => self::FAILED,
             default => null,
         };
     }
