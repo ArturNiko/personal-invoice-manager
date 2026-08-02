@@ -93,9 +93,7 @@ const formatDate = (dateValue?: string) => {
 };
 
 const formatAmount = (invoice: InvoiceEvent) => {
-    const amount = invoice.recurrence
-        ? invoice.price_occurrence
-        : invoice.price_total;
+    const amount = invoice.price;
     const symbol = getCurrencySymbol(invoice.currency);
 
     return `${symbol}${amount}`;

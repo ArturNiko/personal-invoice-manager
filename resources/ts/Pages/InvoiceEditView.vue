@@ -3,7 +3,7 @@ import { onMounted, ref } from "vue";
 import axios from "axios";
 import { useRoute } from "vue-router";
 
-import InvoiceForm from "@/Components/InvoiceForm.vue";
+import InvoiceEditForm from "@/Components/InvoiceEditForm.vue";
 
 import type { InvoiceEvent } from "@/Types/Invoice";
 
@@ -52,10 +52,9 @@ onMounted(loadInvoice);
         {{ loadError }}
     </div>
 
-    <InvoiceForm
-        v-else
-        mode="edit"
-        :invoice="invoice"
-        @deleted="invoice = null"
-    />
+    <InvoiceEditForm 
+        v-else 
+        :invoice="invoice" 
+        @deleted="invoice = null" 
+        />
 </template>

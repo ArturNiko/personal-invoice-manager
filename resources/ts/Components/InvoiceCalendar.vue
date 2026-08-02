@@ -130,8 +130,8 @@ const getEventClassNames = (event: InvoiceEvent) => {
 
 const getAmountLabel = (event: InvoiceEvent) => {
     return event.recurrence 
-        ? `${getCurrencySymbol(event.currency)}${event.price_occurrence} / ${event.recurrence}` 
-        : `${getCurrencySymbol(event.currency)}${event.price_total}`
+    ? `${getCurrencySymbol(event.currency)}${event.price} / ${event.recurrence}` 
+    : `${getCurrencySymbol(event.currency)}${event.price}`
 }
 
 const handleEventClick = (clickEvent: EventClickArg) => {

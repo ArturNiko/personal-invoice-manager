@@ -12,6 +12,7 @@ Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
 Route::post('/invoices', [InvoiceController::class, 'store']);
 Route::match(['put', 'patch'], '/invoices/{invoice}', [InvoiceController::class, 'update']);
 Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy']);
+Route::post('/invoices/import', [InvoiceController::class, 'import']);
 
 Route::view('/{any}', 'app')
     ->where('any', '^(?!invoices$).*$');

@@ -3,8 +3,7 @@ export interface InvoiceEvent {
     title: string
     description?: string
     status: 'pending' | 'paid' | 'overdue'
-    price_occurrence: number
-    price_total: number
+    price: number
     currency: string
     type: string
     recurrence?: string

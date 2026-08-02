@@ -11,8 +11,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $title
  * @property \Illuminate\Support\Carbon $start_date // start date for the invoice, used for one-time invoices and recurring invoices
  * @property \Illuminate\Support\Carbon|null $end_date // optional end date for recurring invoices
- * @property float|null $price_total // total price 
- * @property float|null $price_occurrence // price per occurrence for recurring invoices (e.g. monthly, quarterly, yearly)
+ * @property float|null $price // invoice amount
  * @property string $currency // currency enum: 'EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD', 'CNY', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF', 'RUB', 'BRL', 'INR'
  * @property string $type // type enum: 'one-time', 'recurring'
  * @property string|null $recurrence // recurrence enum: 'weekly', 'biweekly', 'monthly', 'quarterly', 'semiannual', 'yearly'
@@ -26,8 +25,7 @@ class Invoice extends Model
         'title',
         'start_date',
         'end_date',
-        'price_total',
-        'price_occurrence',
+        'price',
         'currency',
         'type',
         'recurrence',
@@ -37,7 +35,6 @@ class Invoice extends Model
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
-        'price_total' => 'float',
-        'price_occurrence' => 'float',
+        'price' => 'float',
     ];
 }

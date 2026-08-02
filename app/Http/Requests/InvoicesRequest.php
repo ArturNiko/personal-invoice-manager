@@ -65,20 +65,7 @@ class InvoicesRequest extends FormRequest
                 'nullable',
                 Rule::enum(InvoiceReccuranceType::class),
             ],
-            'price_total' => [
-                Rule::requiredIf(fn () => $this->input('type') === InvoiceType::ONE_TIME->value),
-                Rule::excludeIf(fn () => $this->input('type') === InvoiceType::RECURRING->value),
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-            'price_occurrence' => [
-                Rule::requiredIf(fn () => $this->input('type') === InvoiceType::RECURRING->value),
-                Rule::excludeIf(fn () => $this->input('type') === InvoiceType::ONE_TIME->value),
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
+            'price' => ['required', 'numeric', 'min:0'],
         ];
     }
 
@@ -90,8 +77,7 @@ class InvoicesRequest extends FormRequest
             'recurrence.enum' => 'The recurrence must be one of: weekly, biweekly, monthly, quarterly, semiannual, yearly.',
             'end_date.required' => 'The end date is required for recurring invoices.',
             'end_date.after_or_equal' => 'The end date must be on or after the start date.',
-            'price_total.required' => 'The total price is required for one-time invoices.',
-            'price_occurrence.required' => 'The occurrence price is required for recurring invoices.',
+            'price.required' => 'The price is required.',
             'currency.in' => 'The selected currency is not supported.',
         ];
     }

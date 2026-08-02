@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import InvoiceForm from "@/Components/InvoiceForm.vue";
+import InvoiceCreateForm from "@/Components/InvoiceCreateForm.vue";
 </script>
 
 <template>
-    <InvoiceForm mode="create" />
+    <InvoiceCreateForm />
 </template>
