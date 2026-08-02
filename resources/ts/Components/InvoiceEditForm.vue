@@ -3,7 +3,7 @@ import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 
-import { getCurrencySymbol } from "@/Utils/Currency";
+import { formatMoney } from "@/Utils/Helpers";
 import { calculateOccurrencesCount } from "@/Utils/Occurrences";
 
 import InputText from "@/Components/Form/InputText.vue";
@@ -104,17 +104,25 @@ const currencySelectOptions = [
 
 const isRecurring = computed(() => form.type === "recurring");
 
+const isRecurringRangeInvalid = computed(() => {
+    if (!isRecurring.value || !form.start_date || !form.end_date) {
+        return false;
+    }
+
+    return new Date(form.start_date) > new Date(form.end_date);
+});
+
 const recurringPreviewLabel = computed(() => {
     if (!isRecurring.value) {
-        return `Price: ${String(form.price || "0")}${getCurrencySymbol(form.currency)}`;
+        return `Price: ${formatMoney(Number(form.price || "0"), form.currency)}`;
     }
 
     if (form.start_date && !form.end_date) {
-        return "Occurrences: Endless";
+        return "Recurring schedule: Endless";
     }
 
     if (!form.start_date || !form.end_date) {
-        return "Occurrences: not set";
+        return "Recurring schedule: not set";
     }
 
     return `Occurrences: ${calculateOccurrencesCount(form.start_date, form.end_date, form.recurrence)}`;
@@ -124,7 +132,16 @@ const priceInputLabel = computed(() =>
     isRecurring.value ? "Occurrence price" : "Price",
 );
 
+const dateInputLabel = computed(() =>
+    isRecurring.value ? "Start date" : "Date",
+);
+
 const submitForm = async () => {
+    if (isRecurringRangeInvalid.value) {
+        submitError.value = "Recurring end date must be on or after the start date.";
+        return;
+    }
+
     isSubmitting.value = true;
     submitError.value = "";
     submitSuccess.value = "";
@@ -196,9 +213,13 @@ const deleteInvoice = async () => {
                     </div>
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <InputDate v-model="form.start_date" label="Start date" required />
-                        <InputDate v-model="form.end_date" label="End date" />
+                        <InputDate v-model="form.start_date" :label="dateInputLabel" required />
+                        <InputDate v-if="isRecurring" v-model="form.end_date" label="End date" />
                     </div>
+
+                    <p v-if="isRecurringRangeInvalid" class="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
+                        Recurring end date must be on or after the start date.
+                    </p>
 
                     <InputSelect v-model="form.recurrence" label="Recurrence" :options="recurrenceSelectOptions" :disabled="!isRecurring" />
                 </div>
@@ -225,7 +246,7 @@ const deleteInvoice = async () => {
                     {{ submitSuccess }}
                 </p>
 
-                <Button type="submit" :disabled="isSubmitting" variant="solid" block class="mt-6">
+                <Button type="submit" :disabled="isSubmitting || isRecurringRangeInvalid" variant="solid" block class="mt-6">
                     {{ isSubmitting ? 'Saving...' : 'Save invoice' }}
                 </Button>
 

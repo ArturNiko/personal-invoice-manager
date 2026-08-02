@@ -125,6 +125,7 @@ watch(
 
             <section class="grid gap-4 sm:grid-cols-2">
                 <article
+                    v-if="route.path === '/calendar' || route.path === '/list'"
                     class="rounded-2xl border border-white/10 bg-slate-900/75 p-4 backdrop-blur"
                 >
                     <p

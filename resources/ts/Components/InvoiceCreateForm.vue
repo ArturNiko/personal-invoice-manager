@@ -3,7 +3,7 @@ import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 
-import { getCurrencySymbol } from "@/Utils/Currency";
+import { formatMoney } from "@/Utils/Helpers";
 import { calculateOccurrencesCount } from "@/Utils/Occurrences";
 
 import InputText from "@/Components/Form/InputText.vue";
@@ -98,17 +98,25 @@ const currencySelectOptions = [
 const isRecurring = computed(() => form.type === "recurring");
 const isImportMode = computed(() => createMode.value === "import");
 
+const isRecurringRangeInvalid = computed(() => {
+    if (!isRecurring.value || !form.start_date || !form.end_date) {
+        return false;
+    }
+
+    return new Date(form.start_date) > new Date(form.end_date);
+});
+
 const recurringPreviewLabel = computed(() => {
     if (!isRecurring.value) {
-        return `Price: ${String(form.price || "0")}${getCurrencySymbol(form.currency)}`;
+        return `Price: ${formatMoney(Number(form.price || "0"), form.currency)}`;
     }
 
     if (form.start_date && !form.end_date) {
-        return "Occurrences: Endless";
+        return "Recurring schedule: Endless";
     }
 
     if (!form.start_date || !form.end_date) {
-        return "Occurrences: not set";
+        return "Recurring schedule: not set";
     }
 
     return `Occurrences: ${calculateOccurrencesCount(form.start_date, form.end_date, form.recurrence)}`;
@@ -116,6 +124,10 @@ const recurringPreviewLabel = computed(() => {
 
 const priceInputLabel = computed(() =>
     isRecurring.value ? "Occurrence price" : "Price",
+);
+
+const dateInputLabel = computed(() =>
+    isRecurring.value ? "Start date" : "Date",
 );
 
 const setCreateMode = (mode: "manual" | "import") => {
@@ -173,6 +185,11 @@ const submitForm = async () => {
         return;
     }
 
+    if (isRecurringRangeInvalid.value) {
+        submitError.value = "Recurring end date must be on or after the start date.";
+        return;
+    }
+
     isSubmitting.value = true;
     submitError.value = "";
     submitSuccess.value = "";
@@ -208,7 +225,7 @@ const submitForm = async () => {
         class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl">
         <div class="border-b border-white/10 px-5 py-4 sm:px-6">
             <h2 class="text-lg font-semibold text-white">Create invoice</h2>
-            <p class="text-sm text-slate-400">Add a new invoice and save it to the backend.</p>
+            <p class="text-sm text-slate-400">Add a new invoice by entering the details below or importing an existing PDF.</p>
         </div>
 
         <form class="grid gap-6 p-4 sm:p-6 lg:grid-cols-[1.2fr_0.8fr]" @submit.prevent="submitForm">
@@ -241,9 +258,13 @@ const submitForm = async () => {
                     </div>
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <InputDate v-model="form.start_date" label="Start date" required />
-                        <InputDate v-model="form.end_date" label="End date" />
+                        <InputDate v-model="form.start_date" :label="dateInputLabel" required />
+                        <InputDate v-if="isRecurring" v-model="form.end_date" label="End date" />
                     </div>
+
+                    <p v-if="isRecurringRangeInvalid" class="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
+                        Recurring end date must be on or after the start date.
+                    </p>
 
                     <InputSelect v-model="form.recurrence" label="Recurrence" :options="recurrenceSelectOptions"
                         :disabled="!isRecurring" />
@@ -294,7 +315,7 @@ const submitForm = async () => {
                     {{ submitSuccess }}
                 </p>
 
-                <Button v-if="createMode === 'manual'" type="submit" :disabled="isSubmitting" variant="solid" block
+                <Button v-if="createMode === 'manual'" type="submit" :disabled="isSubmitting || isRecurringRangeInvalid" variant="solid" block
                     class="mt-6">
                     {{ isSubmitting ? 'Saving...' : 'Create invoice' }}
                 </Button>
