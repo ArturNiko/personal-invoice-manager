@@ -47,15 +47,6 @@ onUnmounted(() => {
     window.removeEventListener('resize', updateCalendarView)
 })
 
-const recurrenceIntervals: Record<string, number> = {
-    weekly: 7,
-    biweekly: 14,
-    monthly: 1,
-    quarterly: 3,
-    semiannual: 6,
-    yearly: 12,
-}
-
 const toDateOnly = (value: string) => {
     const datePart = value.split('T')[0].split(' ')[0]
     const [year, month, day] = datePart.split('-').map(Number)
@@ -77,15 +68,45 @@ const addYears = (date: Date, years: number) => {
     return addMonths(date, years * 12)
 }
 
-const addInterval = (date: Date, recurrence: string) => {
+const addMonthsClamped = (date: Date, months: number) => {
+    const nextDate = new Date(date)
+    const dayOfMonth = nextDate.getDate()
+
+    nextDate.setDate(1)
+    nextDate.setMonth(nextDate.getMonth() + months)
+
+    const lastDayOfMonth = new Date(
+        nextDate.getFullYear(),
+        nextDate.getMonth() + 1,
+        0,
+    ).getDate()
+
+    nextDate.setDate(Math.min(dayOfMonth, lastDayOfMonth))
+
+    return nextDate
+}
+
+const advanceCalendarRecurrenceDate = (date: Date, recurrence: string) => {
     const nextDate = new Date(date)
 
-    if (recurrence === InvoiceRecurrence.WEEKLY || recurrence === InvoiceRecurrence.BIWEEKLY) {
-        nextDate.setDate(nextDate.getDate() + recurrenceIntervals[recurrence])
-        return nextDate
+    switch (recurrence) {
+        case InvoiceRecurrence.WEEKLY:
+            nextDate.setDate(nextDate.getDate() + 7)
+            return nextDate
+        case InvoiceRecurrence.BIWEEKLY:
+            nextDate.setDate(nextDate.getDate() + 14)
+            return nextDate
+        case InvoiceRecurrence.MONTHLY:
+            return addMonthsClamped(nextDate, 1)
+        case InvoiceRecurrence.QUARTERLY:
+            return addMonthsClamped(nextDate, 3)
+        case InvoiceRecurrence.SEMIANNUAL:
+            return addMonthsClamped(nextDate, 6)
+        case InvoiceRecurrence.YEARLY:
+            return addMonthsClamped(nextDate, 12)
+        default:
+            return null
     }
-
-    return addMonths(nextDate, recurrenceIntervals[recurrence] ?? 1)
 }
 
 const buildInvoiceEvents = (invoice: InvoiceEvent): EventInput[] => {
@@ -127,7 +148,13 @@ const buildInvoiceEvents = (invoice: InvoiceEvent): EventInput[] => {
             classNames: getEventClassNames(invoice),
         })
 
-        currentDate = addInterval(currentDate, invoice.recurrence ?? InvoiceRecurrence.MONTHLY)
+        const nextDate = advanceCalendarRecurrenceDate(currentDate, invoice.recurrence ?? InvoiceRecurrence.MONTHLY)
+
+        if (!nextDate) {
+            break
+        }
+
+        currentDate = nextDate
     }
 
     return events
