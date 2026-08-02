@@ -1,12 +1,14 @@
+import { Currency } from "@/Types/Currency";
+
 export interface InvoiceEvent {
     id: number
     title: string
     description?: string
-    status: 'pending' | 'paid' | 'overdue'
+    status: InvoiceStatuses
     price: number
-    currency: string
-    type: string
-    recurrence?: string
+    currency: Currency
+    type: InvoiceTypes
+    recurrence?: InvoiceRecurrence
     start_date: string
     end_date?: string
 }
@@ -29,4 +31,25 @@ export interface InvoiceIndexResponse {
     prev_page_url: string | null
     to: number
     total: number
+}
+
+export enum InvoiceStatuses {
+    PENDING = "pending",
+    PAID = "paid",
+    OVERDUE = "overdue",
+}
+
+export enum InvoiceTypes {
+    ONE_TIME = "one-time",
+    RECURRING = "recurring",
+}
+
+export enum InvoiceRecurrence {
+    NONE = "",
+    WEEKLY = "weekly",
+    BIWEEKLY = "biweekly",
+    MONTHLY = "monthly",
+    QUARTERLY = "quarterly",
+    SEMIANNUAL = "semiannual",
+    YEARLY = "yearly",
 }

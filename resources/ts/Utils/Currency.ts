@@ -1,28 +1,30 @@
-export const getCurrencySymbol = (currency: string): string => {
+import { Currency } from "@/Types/Currency";
+
+export const getCurrencySymbol = (currency: Currency): string => {
     switch (currency) {
-        case 'USD':
+        case Currency.USD:
             return '$';
-        case 'EUR':
+        case Currency.EUR:
             return '€';
-        case 'GBP':
+        case Currency.GBP:
             return '£';
-        case 'JPY':
+        case Currency.JPY:
             return '¥';
-        case 'AUD':
+        case Currency.AUD:
             return 'A$';
-        case 'CAD':
+        case Currency.CAD:
             return 'C$';
-        case 'CHF':
+        case Currency.CHF:
             return 'Fr.';
-        case 'CNY':
+        case Currency.CNY:
             return '¥';
-        case 'SEK':
+        case Currency.SEK:
             return 'kr';
-        case 'NZD':
+        case Currency.NZD:
             return 'NZ$';
-        case 'RUB':
+        case Currency.RUB:
             return '₽';
-        case 'AMD':
+        case Currency.AMD:
             return '֏';
         default:
             return currency;
