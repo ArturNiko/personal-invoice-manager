@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { getCurrencySymbol } from '@/Utils/Currency'
 import { useRouter } from 'vue-router'
 
 import Badge from '@/Components/Badge.vue'
-import CalendarDayMenu from '@/Components/CalendarDayMenu.vue'
+import Tooltip from '@/Components/Tooltip.vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
@@ -21,9 +21,8 @@ type CalendarDateClickArg = {
 const router = useRouter()
 const props = defineProps<{ invoices: InvoiceEvent[] }>()
 const isCompactView = ref(false)
-const dayMenuOpen = ref(false)
-const dayMenuDate = ref('')
-const dayMenuStyle = ref({ top: '0px', left: '0px' })
+const tooltipDate = ref('')
+const tooltip = ref<InstanceType<typeof Tooltip> | null>(null)
 
 const updateCalendarView = () => {
     const width = window.innerWidth
@@ -172,35 +171,24 @@ const getAmountLabel = (event: InvoiceEvent) => {
     : `${getCurrencySymbol(event.currency)}${event.price}`
 }
 
-const closeDayMenu = () => {
-    dayMenuOpen.value = false
-    dayMenuDate.value = ''
+const closeTooltip = () => {
+    tooltip.value?.close()
+    tooltipDate.value = ''
 }
 
-const openDayMenu = (clickInfo: CalendarDateClickArg) => {
-    dayMenuDate.value = clickInfo.dateStr
+const openTooltip = async (clickInfo: CalendarDateClickArg) => {
+    tooltipDate.value = clickInfo.dateStr
 
-    const dayRect = clickInfo.dayEl.getBoundingClientRect()
-    const menuWidth = 256
-    const menuHeight = 168
-
-    dayMenuStyle.value = {
-        top: `${Math.max(12, Math.min(dayRect.bottom + 8, window.innerHeight - menuHeight - 12))}px`,
-        left: `${Math.max(12, Math.min(dayRect.left, window.innerWidth - menuWidth - 12))}px`,
-    }
-
-    window.setTimeout(() => {
-        dayMenuOpen.value = true
-    }, 0)
+    tooltip.value?.open(clickInfo.jsEvent, clickInfo.dayEl)
 }
 
 const createInvoiceForDay = () => {
-    if (!dayMenuDate.value) {
+    if (!tooltipDate.value) {
         return
     }
 
-    closeDayMenu()
-    router.push({ name: 'create', query: { date: dayMenuDate.value } })
+    closeTooltip()
+    router.push({ name: 'create', query: { date: tooltipDate.value } })
 }
 
 const handleEventClick = (clickEvent: EventClickArg) => {
@@ -240,17 +228,18 @@ const calendarOptions = computed(() => ({
         `,
     }),
     eventClick: handleEventClick,
-    dateClick: (clickInfo: CalendarDateClickArg) => openDayMenu(clickInfo),
+    dateClick: (clickInfo: CalendarDateClickArg) => {
+        console.log('Tooltip state:', tooltip.value?.isOpen)
+        console.log('Date clicked:', clickInfo.dateStr)
+        console.log('Tooltip date:', tooltipDate.value)
+        if (tooltip.value?.isOpen && tooltipDate.value === clickInfo.dateStr) {
+            closeTooltip()
+            return
+        }
+
+        openTooltip(clickInfo)
+    },
 }))
-
-onMounted(() => {
-    window.addEventListener('click', closeDayMenu)
-})
-
-onUnmounted(() => {
-    window.removeEventListener('click', closeDayMenu)
-})
-
 
 </script>
 
@@ -265,7 +254,7 @@ onUnmounted(() => {
         </div>
 
         <div class="flex-1 p-3 sm:p-5">
-            <div class="calendar-scroll">
+            <div class="overflow-x-auto">
                 <FullCalendar
                     :key="calendarView"
                     :options="calendarOptions"
@@ -274,14 +263,28 @@ onUnmounted(() => {
                 />
             </div>
         </div>
+        <Tooltip
+            ref="tooltip"
+            width="w-72"
+            @close="closeTooltip"
+        >
+            <div class="space-y-2">
+                <p class="text-xs uppercase tracking-[0.24em] text-slate-400">Selected day</p>
+                <p class="text-sm font-semibold text-white">{{ tooltipDate }}</p>
 
-        <CalendarDayMenu
-            v-if="dayMenuOpen"
-            :date="dayMenuDate"
-            :style="dayMenuStyle"
-            @close="closeDayMenu"
-            @create="createInvoiceForDay"
-        />
+                <button
+                    type="button"
+                    class="mt-2 w-full rounded-xl bg-cyan-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+                    @click.stop="createInvoiceForDay"
+                >
+                    Create invoice for this day
+                </button>
+
+                <p class="text-xs leading-5 text-slate-400">
+                    More day actions might be available in future updates.
+                </p>
+            </div>
+        </Tooltip>
     </section>
 </template>
 
@@ -290,10 +293,6 @@ onUnmounted(() => {
 .invoice-calendar.fc {
     height: 100%;
     color: rgb(226 232 240);
-}
-
-.calendar-scroll {
-    overflow-x: auto;
 }
 
 .invoice-calendar--compact.fc {

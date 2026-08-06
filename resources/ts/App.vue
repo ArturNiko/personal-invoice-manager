@@ -7,6 +7,7 @@ import type { InvoiceIndexResponse, InvoiceEvent } from "@/Types/Invoice";
 
 const invoices = ref<InvoiceEvent[]>([]);
 const route = useRoute();
+const isCompactView = ref(false);
 
 const invoiceQuery = computed(() => ({
     q: typeof route.query.q === "string" ? route.query.q : undefined,
@@ -45,8 +46,14 @@ const fetchInvoices = async () => {
     }
 };
 
+const updateCalendarView = () => {
+    isCompactView.value = window.innerWidth < 768;
+};
+
 onMounted(async () => {
     await fetchInvoices();
+    updateCalendarView()
+    window.addEventListener('resize', updateCalendarView)
 });
 
 watch(
@@ -123,7 +130,10 @@ watch(
                 </div>
             </header>
 
-            <section class="grid gap-4 sm:grid-cols-2">
+            <section 
+                v-show="!isCompactView"
+                class="grid gap-4 sm:grid-cols-2" 
+            >
                 <article
                     v-if="route.path === '/calendar' || route.path === '/list'"
                     class="rounded-2xl border border-white/10 bg-slate-900/75 p-4 backdrop-blur"
