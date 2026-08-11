@@ -3,6 +3,7 @@ import axios from "axios"
 import { computed, onMounted, ref, watch } from "vue"
 import { useRoute, RouterLink, RouterView } from "vue-router"
 
+import Icon from "@/Components/Icon.vue"
 import Widget from "@/Components/Widget.vue"
 import Calculator from "@/Widgets/Calculator.vue"
 
@@ -54,6 +55,8 @@ const updateCalendarView = () => {
     isCompactView.value = window.innerWidth < 768
 }
 
+const isCreatePage = computed(() => route.path === '/create')
+
 onMounted(async () => {
     await fetchInvoices()
     updateCalendarView()
@@ -66,18 +69,20 @@ watch(
         await fetchInvoices()
     },
 )
+
+const isCurrentRoute = (path: string) => route.path === path
 </script>
 
 <template>
     <div
-        class="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100"
+        class="relative isolate min-h-dvh overflow-hidden bg-slate-950 text-slate-100"
     >
         <div
-            class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.26),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,1)_0%,_rgba(2,6,23,1)_100%)]"
+            class="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.26),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,1)_0%,_rgba(2,6,23,1)_100%)]"
         ></div>
 
         <div
-            class="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-2 sm:px-4 py-5 md:px-6 lg:px-8 lg:py-8"
+            class="relative mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-6 px-2 py-5 sm:px-4 md:px-6 lg:px-8 lg:py-8"
         >
             <header
                 class="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between"
@@ -95,41 +100,52 @@ watch(
                     </p>
                 </div>
 
-                <div
-                    class="inline-flex rounded-2xl border border-white/10 bg-slate-900/70 p-1 shadow-lg shadow-slate-950/30"
-                >
+                <div class="flex flex-row flex-nowrap items-center gap-2 sm:gap-3">
+                    <div
+                        class="inline-flex shrink-0 rounded-2xl border border-white/10 bg-slate-900/70 p-1 shadow-lg shadow-slate-950/30"
+                    >
+                        <RouterLink
+                            to="/calendar"
+                            class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl px-0 text-sm font-medium transition sm:w-auto sm:px-4"
+                            :class="
+                                isCurrentRoute('/calendar')
+                                    ? 'bg-white text-slate-950 shadow'
+                                    : 'text-slate-300 hover:text-white'
+                            "
+                        >
+                            <Icon
+                                icon="calendar"
+                                :theme="isCurrentRoute('/calendar') ? 'light' : 'dark'"
+                            />
+                            <span class="sr-only sm:not-sr-only sm:ml-2">Calendar</span>
+                        </RouterLink>
+                        <RouterLink
+                            to="/list"
+                            class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl px-0 text-sm font-medium transition sm:w-auto sm:px-4"
+                            :class="
+                                isCurrentRoute('/list')
+                                    ? 'bg-white text-slate-950 shadow'
+                                    : 'text-slate-300 hover:text-white'
+                            "
+                        >
+                            <Icon
+                                icon="list"
+                                :theme="isCurrentRoute('/list') ? 'light' : 'dark'"
+                            />
+                            <span class="sr-only sm:not-sr-only sm:ml-2">List</span>
+                        </RouterLink>
+                    </div>
+
                     <RouterLink
+                        v-if="!isCreatePage"
                         to="/create"
-                        class="rounded-xl px-4 py-2 text-sm font-medium transition"
-                        :class="
-                            route.path === '/create'
-                                ? 'bg-white text-slate-950 shadow'
-                                : 'text-slate-300 hover:text-white'
-                        "
+                        class="inline-flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-0 text-sm font-semibold text-cyan-200 shadow-lg shadow-slate-950/25 transition hover:-translate-y-0.5 hover:bg-cyan-400/20 hover:text-white sm:w-auto sm:px-4"
                     >
-                        Create
-                    </RouterLink>
-                    <RouterLink
-                        to="/calendar"
-                        class="rounded-xl px-4 py-2 text-sm font-medium transition"
-                        :class="
-                            route.path === '/calendar'
-                                ? 'bg-white text-slate-950 shadow'
-                                : 'text-slate-300 hover:text-white'
-                        "
-                    >
-                        Calendar
-                    </RouterLink>
-                    <RouterLink
-                        to="/list"
-                        class="rounded-xl px-4 py-2 text-sm font-medium transition"
-                        :class="
-                            route.path === '/list'
-                                ? 'bg-white text-slate-950 shadow'
-                                : 'text-slate-300 hover:text-white'
-                        "
-                    >
-                        List
+                        <Icon
+                            icon="add"
+                            :theme="isCurrentRoute('/create') ? 'light' : 'dark'"
+                        />
+                        <span class="sr-only sm:not-sr-only">Create</span>
                     </RouterLink>
                 </div>
             </header>

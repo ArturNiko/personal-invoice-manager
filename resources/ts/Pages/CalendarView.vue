@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { getCurrencySymbol } from '@/Utils/Currency';
 import { useRouter } from 'vue-router';
 
@@ -23,25 +23,29 @@ const props = defineProps<{ invoices: InvoiceEvent[] }>();
 const isCompactView = ref(false);
 const tooltipDate = ref('');
 const tooltip = ref<InstanceType<typeof Tooltip> | null>(null);
+const calendarRef = ref<InstanceType<typeof FullCalendar> | null>(null);
 
 const updateCalendarView = () => {
     const width = window.innerWidth;
-    isCompactView.value = width < 768;
+    const nextCompactView = width < 768;
+
+    if (isCompactView.value !== nextCompactView) isCompactView.value = nextCompactView;
+
+    if (!calendarRef.value) return;
+
+    const api = calendarRef.value.getApi();
+    const nextView = calendarView.value;
+    console.log('Updating calendar view to:', nextView);
+
+    if (api.view?.type !== nextView) {
+        api.changeView(nextView);
+    }
 };
 
 const calendarView = computed(() => {
     if (isCompactView.value) return 'dayGridWeek';
 
     return 'dayGridMonth';
-});
-
-onMounted(() => {
-    updateCalendarView();
-    window.addEventListener('resize', updateCalendarView);
-});
-
-onUnmounted(() => {
-    window.removeEventListener('resize', updateCalendarView);
 });
 
 const toDateOnly = (value: string) => {
@@ -215,9 +219,9 @@ const calendarOptions = computed(() => ({
     events: props.invoices.flatMap((invoice) => buildInvoiceEvents(invoice)),
     eventContent: (eventInfo: EventContentArg) => ({
         html: `
-            <div class="invoice-event-content">
+            <div class="invoice-event-content${isCompactView.value ? ' invoice-event-content--compact' : ''}">
                 <div class="invoice-event-title">${eventInfo.event.title}</div>
-                <div class="invoice-event-meta">${eventInfo.event.extendedProps.amountLabel ?? ''}</div>
+                ${isCompactView.value ? '' : `<div class="invoice-event-meta">${eventInfo.event.extendedProps.amountLabel ?? ''}</div>`}
             </div>
         `,
     }),
@@ -232,6 +236,20 @@ const calendarOptions = computed(() => ({
     },
 }));
 
+onMounted(() => {
+    updateCalendarView();
+    window.addEventListener('resize', updateCalendarView);
+    window.addEventListener('orientationchange', updateCalendarView);
+
+    nextTick(() => {
+        updateCalendarView();
+    });
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateCalendarView);
+});
+
 </script>
 
 <template>
@@ -241,12 +259,13 @@ const calendarOptions = computed(() => ({
                 <h2 class="text-lg font-semibold text-white">Calendar</h2>
                 <p class="text-sm text-slate-400 mr-4">Monthly planning view with invoice-related reminders.</p>
             </div>
-            <Badge variant="emerald" size="md">Full size</Badge>
+            <Badge variant="sky" size="md">{{ invoices.length }} invoices</Badge>
         </div>
 
         <div class="flex-1 p-3 sm:p-5">
             <div class="overflow-x-auto">
                 <FullCalendar
+                    ref="calendarRef"
                     :key="calendarView"
                     :options="calendarOptions"
                     class="invoice-calendar"
@@ -438,6 +457,43 @@ const calendarOptions = computed(() => ({
     font-weight: 500;
     letter-spacing: 0.02em;
     line-height: 1.1;
+}
+
+.invoice-calendar--compact.fc .fc-daygrid-event.invoice-event {
+    margin: 0.2rem 0.2rem 0;
+    border-radius: 0.7rem;
+    box-shadow: 0 4px 10px rgba(2, 6, 23, 0.26);
+}
+
+.invoice-calendar--compact.fc .fc-daygrid-event.invoice-event::before {
+    width: 0.22rem;
+}
+
+.invoice-calendar--compact.fc .fc-daygrid-event.invoice-event .fc-event-main,
+.invoice-calendar--compact.fc .fc-daygrid-event.invoice-event .fc-event-main-frame,
+.invoice-calendar--compact.fc .fc-daygrid-event.invoice-event .invoice-event-content {
+    padding: 0.35rem 0.55rem 0.35rem 0.45rem;
+}
+
+.invoice-calendar--compact.fc .invoice-event-content--compact {
+    gap: 0;
+}
+
+.invoice-calendar--compact.fc .invoice-event-title {
+    font-size: 0.68rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.invoice-calendar--compact.fc .fc-daygrid-event .fc-event-time,
+.invoice-calendar--compact.fc .invoice-event-meta {
+    display: none;
+}
+
+.invoice-calendar--compact.fc .fc-daygrid-day-frame {
+    min-height: 4.4rem;
 }
 
 /* Hide the default FullCalendar title node because we render our own layout */

@@ -19,23 +19,23 @@ const props = withDefaults(
 );
 
 const variantClasses: Record<NonNullable<typeof props.variant>, string> = {
-    solid: 'border-white/10 bg-white text-slate-950 hover:bg-slate-200',
-    outline: 'border-white/10 bg-slate-950/40 text-slate-300 hover:border-cyan-400/40 hover:text-white',
-    danger: 'border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20',
-    sky: 'border-sky-400/30 bg-sky-400/10 text-sky-200 hover:bg-sky-400/15',
-    teal: 'border-teal-400/35 bg-teal-500/10 text-teal-100 hover:bg-teal-500/15',
-    amber: 'border-amber-400/35 bg-amber-500/10 text-amber-100 hover:bg-amber-500/15',
-    emerald: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15',
-    rose: 'border-rose-400/35 bg-rose-500/10 text-rose-100 hover:bg-rose-500/15',
+    solid: 'border-white/10 bg-white text-slate-950 shadow-sm shadow-slate-950/20 hover:bg-slate-200',
+    outline: 'border-white/15 bg-slate-950/55 text-slate-300 shadow-sm shadow-slate-950/15 hover:border-cyan-400/45 hover:bg-slate-900/75 hover:text-white',
+    danger: 'border-red-400/30 bg-red-500/15 text-red-100 shadow-sm shadow-slate-950/15 hover:bg-red-500/25',
+    sky: 'border-sky-400/30 bg-sky-400/15 text-sky-100 shadow-sm shadow-slate-950/15 hover:bg-sky-400/25',
+    teal: 'border-teal-400/35 bg-teal-500/15 text-teal-50 shadow-sm shadow-slate-950/15 hover:bg-teal-500/25',
+    amber: 'border-amber-400/35 bg-amber-500/15 text-amber-50 shadow-sm shadow-slate-950/15 hover:bg-amber-500/25',
+    emerald: 'border-emerald-400/35 bg-emerald-500/15 text-emerald-50 shadow-sm shadow-slate-950/15 hover:bg-emerald-500/25',
+    rose: 'border-rose-400/35 bg-rose-500/15 text-rose-50 shadow-sm shadow-slate-950/15 hover:bg-rose-500/25',
 };
 
 const sizeClasses = {
-    sm: 'px-2.5 py-1 text-xs',
-    md: 'px-4 py-3 text-sm',
+    sm: 'px-3 py-1.5 text-xs',
+    md: 'px-4 py-2.5 text-sm',
 };
 
 const buttonClasses = computed(() => [
-    'inline-flex cursor-pointer items-center justify-center rounded-full border font-medium transition disabled:cursor-not-allowed disabled:opacity-60',
+    'inline-flex cursor-pointer items-center justify-center rounded-xl border font-medium tracking-wide transition duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60',
     variantClasses[props.variant],
     sizeClasses[props.size],
     props.block ? 'w-full' : '',

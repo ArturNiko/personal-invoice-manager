@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 
 const props = withDefaults(
@@ -14,19 +14,28 @@ const props = withDefaults(
 
 const iconUrl = `/icons/${props.icon}.svg`
 
-const theme = ref(props.theme)
+const systemTheme = ref<'light' | 'dark'>('light')
+const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
-const updateTheme = () => {
-    theme.value = props.theme === 'auto' 
-        ? window.matchMedia('(prefers-color-scheme: dark)').matches 
-            ? 'dark' 
-            : 'light' 
-        : props.theme
+const updateSystemTheme = () => {
+    systemTheme.value = mediaQuery.matches ? 'dark' : 'light'
 }
 
+const theme = computed(() => {
+    if (props.theme === 'auto') {
+        return systemTheme.value
+    }
+
+    return props.theme
+})
+
 onMounted(() => {
-    updateTheme()
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme)
+    updateSystemTheme()
+    mediaQuery.addEventListener('change', updateSystemTheme)
+})
+
+onUnmounted(() => {
+    mediaQuery.removeEventListener('change', updateSystemTheme)
 })
 
 

@@ -175,7 +175,7 @@ const deleteInvoice = async (id: number) => {
                     Event-backed invoice entries synced from your API feed.
                 </p>
             </div>
-            <Badge variant="sky" size="md">{{ visibleInvoices.length }} items</Badge>
+            <Badge variant="sky" size="md">{{ visibleInvoices.length }} invoices</Badge>
         </div>
 
         <div class="border-b border-white/10 p-4 sm:p-6">
@@ -239,33 +239,33 @@ const deleteInvoice = async (id: number) => {
                     <article
                         v-for="invoice in visibleInvoices"
                         :key="invoice.id"
-                        class="rounded-2xl border border-white/10 bg-slate-950/40 p-4 transition hover:border-cyan-400/40 hover:bg-slate-950/60"
+                        class="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40 p-3 transition hover:border-cyan-400/40 hover:bg-slate-950/60 sm:p-4"
                     >
                         <div
                             class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                         >
-                            <div>
-                                <p class="text-sm font-semibold text-white">
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-semibold text-white sm:text-base">
                                     {{ invoice.title }}
                                 </p>
-                                <p class="text-sm text-slate-400">
+                                <p class="text-xs text-slate-400 sm:text-sm">
                                     ID #{{ invoice.id }}
                                 </p>
                             </div>
                             <div class="text-left sm:text-right">
-                                <p class="text-lg font-semibold text-white">
+                                <p class="text-base font-semibold text-white sm:text-lg">
                                     {{ formatAmount(invoice) }}
                                 </p>
-                                <p class="text-sm text-slate-400">
+                                <p class="text-xs text-slate-400 sm:text-sm">
                                     {{ formatDate(invoice.start_date) }}
                                 </p>
                             </div>
                         </div>
 
                         <div
-                            class="mt-4 flex items-center justify-between gap-2 text-xs uppercase tracking-[0.2em]"
+                            class="mt-4 flex flex-col gap-3 text-xs uppercase tracking-[0.16em] sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:tracking-[0.2em]"
                         >
-                            <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <Badge :variant="getTypeVariant(invoice.type)">
                                     {{ getTypeLabel(invoice.type) }}
                                 </Badge>
@@ -273,10 +273,11 @@ const deleteInvoice = async (id: number) => {
                                     {{ getStatusLabel(invoice.status) }}
                                 </Badge>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center">
                                 <Button
                                     variant="outline"
                                     size="sm"
+                                    class="w-full sm:w-auto"
                                     @click="editInvoice(invoice.id)"
                                 >
                                     Edit
@@ -284,6 +285,7 @@ const deleteInvoice = async (id: number) => {
                                 <Button
                                     variant="danger"
                                     size="sm"
+                                    class="w-full sm:w-auto"
                                     :disabled="deletingInvoiceId === invoice.id"
                                     @click="deleteInvoice(invoice.id)"
                                 >
