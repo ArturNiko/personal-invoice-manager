@@ -1,77 +1,72 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
-import axios from "axios";
-import { useRoute, useRouter } from "vue-router";
+import { computed, onMounted, reactive, ref } from 'vue';
+import axios from 'axios';
+import { useRoute, useRouter } from 'vue-router';
 
-import { normalizeDateValue, formatMoney } from "@/Utils/Helpers";
-import { calculateOccurrencesCount } from "@/Utils/Occurrences";
+import { normalizeDateValue, formatMoney } from '@/Utils/Helpers';
+import { calculateOccurrencesCount } from '@/Utils/Occurrences';
 import {
     currencyOptions,
     invoiceRecurrenceOptions,
     invoiceStatusOptions,
     invoiceTypeOptions,
-} from "@/Utils/Consts";
+} from '@/Utils/Consts';
 
-import InputText from "@/Components/Form/InputText.vue";
-import InputDate from "@/Components/Form/InputDate.vue";
-import InputBalance from "@/Components/Form/InputBalance.vue";
-import InputSelect from "@/Components/Form/InputSelect.vue";
-import Button from "@/Components/Button.vue";
+import InputText from '@/Components/Form/InputText.vue';
+import InputDate from '@/Components/Form/InputDate.vue';
+import InputBalance from '@/Components/Form/InputBalance.vue';
+import InputSelect from '@/Components/Form/InputSelect.vue';
+import Button from '@/Components/Button.vue';
 
-import { type InvoiceEvent, InvoiceTypes, InvoiceStatuses, InvoiceRecurrence } from "@/Types/Invoice";
-import { Currency } from "@/Types/Currency";
+import { 
+    type InvoiceEvent, 
+    type InvoiceForm, 
+    InvoiceTypes, 
+    InvoiceStatuses, 
+    InvoiceRecurrence 
+} from '@/Types/Invoice';
+import { Currency } from '@/Types/Currency';
 
 
 const router = useRouter();
 const route = useRoute();
 const invoice = ref<InvoiceEvent | null>(null);
 const loading = ref(true);
-const loadError = ref("");
+const loadError = ref('');
 const isSubmitting = ref(false);
 const isDeleting = ref(false);
-const submitError = ref("");
-const submitSuccess = ref("");
+const submitError = ref('');
+const submitSuccess = ref('');
 
-type EditInvoiceForm = {
-    title: string;
-    type: InvoiceTypes;
-    status: InvoiceStatuses;
-    start_date: string;
-    end_date: string;
-    currency: Currency;
-    recurrence: InvoiceRecurrence;
-    price: string;
-};
-
-const createEmptyForm = (): EditInvoiceForm => ({
-    title: "",
+const createEmptyForm = (): InvoiceForm => ({
+    title: '',
     type: InvoiceTypes.ONE_TIME,
     status: InvoiceStatuses.PENDING,
     start_date: new Date().toISOString().slice(0, 10),
-    end_date: "",
+    end_date: '',
     currency: Currency.EUR,
     recurrence: InvoiceRecurrence.MONTHLY,
-    price: "",
+    price: '',
 });
 
-const form = reactive<EditInvoiceForm>(createEmptyForm());
+const form = reactive<InvoiceForm>(createEmptyForm());
 
 const syncFormFromInvoice = (currentInvoice: InvoiceEvent) => {
-    form.title = currentInvoice.title;
-    form.type = currentInvoice.type;
-    form.status = currentInvoice.status;
-    form.start_date = normalizeDateValue(currentInvoice.start_date) || new Date().toISOString().slice(0, 10);
-    form.end_date = normalizeDateValue(currentInvoice.end_date);
-    form.currency = currentInvoice.currency;
-    form.recurrence = currentInvoice.recurrence ?? InvoiceRecurrence.MONTHLY;
-    form.price = String(currentInvoice.price ?? "");
+    form.title = currentInvoice.title
+    form.type = currentInvoice.type
+    form.status = currentInvoice.status
+    form.start_date = normalizeDateValue(currentInvoice.start_date) || new Date().toISOString().slice(0, 10)
+    form.end_date = normalizeDateValue(currentInvoice.end_date)
+    form.currency = currentInvoice.currency
+    form.recurrence = currentInvoice.recurrence ?? InvoiceRecurrence.MONTHLY
+    form.price = String(currentInvoice.price ?? '')
 };
 
 const loadInvoice = async () => {
     const invoiceId = route.params.id;
 
-    if (typeof invoiceId !== "string") {
-        loadError.value = "Missing invoice id.";
+    if (typeof invoiceId !== 'string') {
+        loadError.value = 'Missing invoice id.';
         loading.value = false;
         return;
     }
@@ -80,9 +75,11 @@ const loadInvoice = async () => {
         const response = await axios.get<InvoiceEvent>(`/invoices/${invoiceId}`);
         invoice.value = response.data;
         syncFormFromInvoice(response.data);
-    } catch (error: any) {
-        loadError.value = error?.response?.data?.message ?? "Failed to load invoice.";
-    } finally {
+    } 
+    catch (error: any) {
+        loadError.value = error?.response?.data?.message ?? 'Failed to load invoice.';
+    } 
+    finally {
         loading.value = false;
     }
 };
@@ -90,46 +87,37 @@ const loadInvoice = async () => {
 const isRecurring = computed(() => form.type === InvoiceTypes.RECURRING);
 
 const isRecurringRangeInvalid = computed(() => {
-    if (!isRecurring.value || !form.start_date || !form.end_date) {
-        return false;
-    }
+    if (!isRecurring.value || !form.start_date || !form.end_date) return false;
 
     return new Date(form.start_date) > new Date(form.end_date);
 });
 
 const recurringPreviewLabel = computed(() => {
-    if (!isRecurring.value) {
-        return `Price: ${formatMoney(Number(form.price || "0"), form.currency)}`;
-    }
+    if (!isRecurring.value) return `Price: ${formatMoney(Number(form.price || '0'), form.currency)}`;
 
-    if (form.start_date && !form.end_date) {
-        return "Recurring schedule: Endless";
-    }
-
-    if (!form.start_date || !form.end_date) {
-        return "Recurring schedule: not set";
-    }
+    if (form.start_date && !form.end_date) return 'Recurring schedule: Endless';
+    if (!form.start_date || !form.end_date) return 'Recurring schedule: not set';
 
     return `Occurrences: ${calculateOccurrencesCount(form.start_date, form.end_date, form.recurrence)}`;
 });
 
-const priceInputLabel = computed(() => (isRecurring.value ? "Occurrence price" : "Price"));
-const dateInputLabel = computed(() => (isRecurring.value ? "Start date" : "Date"));
+const priceInputLabel = computed(() => (isRecurring.value ? 'Occurrence price' : 'Price'));
+const dateInputLabel = computed(() => (isRecurring.value ? 'Start date' : 'Date'));
 
 const submitForm = async () => {
     if (!invoice.value?.id) {
-        submitError.value = "Missing invoice id.";
+        submitError.value = 'Missing invoice id.';
         return;
     }
 
     if (isRecurringRangeInvalid.value) {
-        submitError.value = "Recurring end date must be on or after the start date.";
+        submitError.value = 'Recurring end date must be on or after the start date.';
         return;
     }
 
     isSubmitting.value = true;
-    submitError.value = "";
-    submitSuccess.value = "";
+    submitError.value = '';
+    submitSuccess.value = '';
 
     const payload: Partial<InvoiceEvent> & Record<string, string | number | undefined> = {
         title: form.title,
@@ -144,11 +132,13 @@ const submitForm = async () => {
 
     try {
         await axios.put(`/invoices/${invoice.value.id}`, payload);
-        submitSuccess.value = "Invoice updated successfully.";
-        await router.push({ path: "/list", query: { updated: "1" } });
-    } catch (error: any) {
-        submitError.value = error?.response?.data?.message ?? "Failed to update invoice.";
-    } finally {
+        submitSuccess.value = 'Invoice updated successfully.';
+        await router.push({ path: '/list', query: { updated: '1' } });
+    } 
+    catch (error: any) {
+        submitError.value = error?.response?.data?.message ?? 'Failed to update invoice.';
+    } 
+    finally {
         isSubmitting.value = false;
     }
 };
@@ -156,20 +146,22 @@ const submitForm = async () => {
 const deleteInvoice = async () => {
     if (!invoice.value?.id) return;
 
-    const confirmed = window.confirm("Delete this invoice? This cannot be undone.");
+    const confirmed = window.confirm('Delete this invoice? This cannot be undone.');
 
     if (!confirmed) return;
 
     isDeleting.value = true;
-    submitError.value = "";
+    submitError.value = '';
 
     try {
         await axios.delete(`/invoices/${invoice.value.id}`);
         invoice.value = null;
-        await router.push({ path: "/list", query: { deleted: "1" } });
-    } catch (error: any) {
-        submitError.value = error?.response?.data?.message ?? "Failed to delete invoice.";
-    } finally {
+        await router.push({ path: '/list', query: { deleted: '1' } });
+    }
+    catch (error: any) {
+        submitError.value = error?.response?.data?.message ?? 'Failed to delete invoice.';
+    } 
+    finally {
         isDeleting.value = false;
     }
 };

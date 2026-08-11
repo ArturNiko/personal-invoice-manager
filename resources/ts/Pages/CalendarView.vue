@@ -1,112 +1,110 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { getCurrencySymbol } from '@/Utils/Currency'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { getCurrencySymbol } from '@/Utils/Currency';
+import { useRouter } from 'vue-router';
 
-import Badge from '@/Components/Badge.vue'
-import Tooltip from '@/Components/Tooltip.vue'
-import FullCalendar from '@fullcalendar/vue3'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import interactionPlugin from '@fullcalendar/interaction'
+import Badge from '@/Components/Badge.vue';
+import Tooltip from '@/Components/Tooltip.vue';
+import FullCalendar from '@fullcalendar/vue3';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
 
-import type { EventClickArg, EventContentArg, EventInput } from '@fullcalendar/core'
-import { InvoiceRecurrence, InvoiceTypes, type InvoiceEvent } from '@/Types/Invoice'
+import type { EventClickArg, EventContentArg, EventInput } from '@fullcalendar/core';
+import { InvoiceRecurrence, InvoiceTypes, type InvoiceEvent } from '@/Types/Invoice';
 
 type CalendarDateClickArg = {
     dateStr: string
     jsEvent: MouseEvent
     dayEl: HTMLElement
-}
+};
 
-const router = useRouter()
-const props = defineProps<{ invoices: InvoiceEvent[] }>()
-const isCompactView = ref(false)
-const tooltipDate = ref('')
-const tooltip = ref<InstanceType<typeof Tooltip> | null>(null)
+const router = useRouter();
+const props = defineProps<{ invoices: InvoiceEvent[] }>();
+const isCompactView = ref(false);
+const tooltipDate = ref('');
+const tooltip = ref<InstanceType<typeof Tooltip> | null>(null);
 
 const updateCalendarView = () => {
-    const width = window.innerWidth
-    isCompactView.value = width < 768
-}
+    const width = window.innerWidth;
+    isCompactView.value = width < 768;
+};
 
 const calendarView = computed(() => {
-    if (isCompactView.value) {
-        return 'dayGridWeek'
-    }
+    if (isCompactView.value) return 'dayGridWeek';
 
-    return 'dayGridMonth'
-})
+    return 'dayGridMonth';
+});
 
 onMounted(() => {
-    updateCalendarView()
-    window.addEventListener('resize', updateCalendarView)
-})
+    updateCalendarView();
+    window.addEventListener('resize', updateCalendarView);
+});
 
 onUnmounted(() => {
-    window.removeEventListener('resize', updateCalendarView)
-})
+    window.removeEventListener('resize', updateCalendarView);
+});
 
 const toDateOnly = (value: string) => {
-    const datePart = value.split('T')[0].split(' ')[0]
-    const [year, month, day] = datePart.split('-').map(Number)
+    const datePart = value.split('T')[0].split(' ')[0];
+    const [year, month, day] = datePart.split('-').map(Number);
 
-    return new Date(year, month - 1, day)
-}
+    return new Date(year, month - 1, day);
+};
 
 const formatDateOnly = (value: Date) => {
-    return value.toISOString().slice(0, 10)
-}
+    return value.toISOString().slice(0, 10);
+};
 
 const addMonths = (date: Date, months: number) => {
-    const nextDate = new Date(date)
-    nextDate.setMonth(nextDate.getMonth() + months)
-    return nextDate
-}
+    const nextDate = new Date(date);
+    nextDate.setMonth(nextDate.getMonth() + months);
+    return nextDate;
+};
 
 const addYears = (date: Date, years: number) => {
-    return addMonths(date, years * 12)
+    return addMonths(date, years * 12);
 }
 
 const addMonthsClamped = (date: Date, months: number) => {
-    const nextDate = new Date(date)
-    const dayOfMonth = nextDate.getDate()
+    const nextDate = new Date(date);
+    const dayOfMonth = nextDate.getDate();
 
-    nextDate.setDate(1)
-    nextDate.setMonth(nextDate.getMonth() + months)
+    nextDate.setDate(1);
+    nextDate.setMonth(nextDate.getMonth() + months);
 
     const lastDayOfMonth = new Date(
         nextDate.getFullYear(),
         nextDate.getMonth() + 1,
         0,
-    ).getDate()
+    ).getDate();
 
-    nextDate.setDate(Math.min(dayOfMonth, lastDayOfMonth))
+    nextDate.setDate(Math.min(dayOfMonth, lastDayOfMonth));
 
-    return nextDate
-}
+    return nextDate;
+};
 
 const advanceCalendarRecurrenceDate = (date: Date, recurrence: string) => {
-    const nextDate = new Date(date)
+    const nextDate = new Date(date);
 
     switch (recurrence) {
         case InvoiceRecurrence.WEEKLY:
-            nextDate.setDate(nextDate.getDate() + 7)
-            return nextDate
+            nextDate.setDate(nextDate.getDate() + 7);
+            return nextDate;
         case InvoiceRecurrence.BIWEEKLY:
-            nextDate.setDate(nextDate.getDate() + 14)
-            return nextDate
+            nextDate.setDate(nextDate.getDate() + 14);
+            return nextDate;
         case InvoiceRecurrence.MONTHLY:
-            return addMonthsClamped(nextDate, 1)
+            return addMonthsClamped(nextDate, 1);
         case InvoiceRecurrence.QUARTERLY:
-            return addMonthsClamped(nextDate, 3)
+            return addMonthsClamped(nextDate, 3);
         case InvoiceRecurrence.SEMIANNUAL:
-            return addMonthsClamped(nextDate, 6)
+            return addMonthsClamped(nextDate, 6);
         case InvoiceRecurrence.YEARLY:
-            return addMonthsClamped(nextDate, 12)
+            return addMonthsClamped(nextDate, 12);
         default:
-            return null
+            return null;
     }
-}
+};
 
 const buildInvoiceEvents = (invoice: InvoiceEvent): EventInput[] => {
     if (invoice.type !== InvoiceTypes.RECURRING) {
@@ -124,13 +122,13 @@ const buildInvoiceEvents = (invoice: InvoiceEvent): EventInput[] => {
                 },
                 classNames: getEventClassNames(invoice),
             },
-        ]
+        ];
     }
 
-    const events: EventInput[] = []
-    const startDate = toDateOnly(invoice.start_date)
-    const endDate = invoice.end_date ? toDateOnly(invoice.end_date) : addYears(startDate, 10)
-    let currentDate = new Date(startDate)
+    const events: EventInput[] = [];
+    const startDate = toDateOnly(invoice.start_date);
+    const endDate = invoice.end_date ? toDateOnly(invoice.end_date) : addYears(startDate, 10);
+    let currentDate = new Date(startDate);
 
     while (currentDate <= endDate) {
         events.push({
@@ -145,51 +143,47 @@ const buildInvoiceEvents = (invoice: InvoiceEvent): EventInput[] => {
                 invoiceId: invoice.id,
             },
             classNames: getEventClassNames(invoice),
-        })
+        });
 
-        const nextDate = advanceCalendarRecurrenceDate(currentDate, invoice.recurrence ?? InvoiceRecurrence.MONTHLY)
+        const nextDate = advanceCalendarRecurrenceDate(currentDate, invoice.recurrence ?? InvoiceRecurrence.MONTHLY);
 
-        if (!nextDate) {
-            break
-        }
+        if (!nextDate) break;
 
-        currentDate = nextDate
+        currentDate = nextDate;
     }
 
-    return events
-}
+    return events;
+};
 
 const getEventClassNames = (event: InvoiceEvent) => {
-    const baseClass = 'invoice-event'
-    const typeClass = `invoice-event--${event.type.toLowerCase()}`
-    return [baseClass, typeClass]
-}
+    const baseClass = 'invoice-event';
+    const typeClass = `invoice-event--${event.type.toLowerCase()}`;
+    return [baseClass, typeClass];
+};
 
 const getAmountLabel = (event: InvoiceEvent) => {
-    return event.recurrence 
+    return event.recurrence
     ? `${getCurrencySymbol(event.currency)}${event.price} / ${event.recurrence}` 
-    : `${getCurrencySymbol(event.currency)}${event.price}`
-}
+    : `${getCurrencySymbol(event.currency)}${event.price}`;
+};
 
 const closeTooltip = () => {
-    tooltip.value?.close()
-    tooltipDate.value = ''
-}
+    tooltip.value?.close();
+    tooltipDate.value = '';
+};
 
 const openTooltip = async (clickInfo: CalendarDateClickArg) => {
-    tooltipDate.value = clickInfo.dateStr
+    tooltipDate.value = clickInfo.dateStr;
 
-    tooltip.value?.open(clickInfo.jsEvent, clickInfo.dayEl)
-}
+    tooltip.value?.open(clickInfo.jsEvent, clickInfo.dayEl);
+};
 
 const createInvoiceForDay = () => {
-    if (!tooltipDate.value) {
-        return
-    }
+    if (!tooltipDate.value) return;
 
-    closeTooltip()
-    router.push({ name: 'create', query: { date: tooltipDate.value } })
-}
+    closeTooltip();
+    router.push({ name: 'create', query: { date: tooltipDate.value } });
+};
 
 const handleEventClick = (clickEvent: EventClickArg) => {
     router.push({ 
@@ -197,8 +191,8 @@ const handleEventClick = (clickEvent: EventClickArg) => {
         params: { 
             id: clickEvent.event.extendedProps.invoiceId ?? clickEvent.event.id
         } 
-    })
-}
+    });
+};
     
 const calendarOptions = computed(() => ({
     plugins: [dayGridPlugin, interactionPlugin],
@@ -229,17 +223,14 @@ const calendarOptions = computed(() => ({
     }),
     eventClick: handleEventClick,
     dateClick: (clickInfo: CalendarDateClickArg) => {
-        console.log('Tooltip state:', tooltip.value?.isOpen)
-        console.log('Date clicked:', clickInfo.dateStr)
-        console.log('Tooltip date:', tooltipDate.value)
         if (tooltip.value?.isOpen && tooltipDate.value === clickInfo.dateStr) {
-            closeTooltip()
-            return
+            closeTooltip();
+            return;
         }
 
-        openTooltip(clickInfo)
+        openTooltip(clickInfo);
     },
-}))
+}));
 
 </script>
 

@@ -12,22 +12,22 @@ export const calculateOccurrencesCount = (startDate: string, endDate: string, re
     while (current <= end) {
         occurrences++;
         switch (recurrence) {
-            case "weekly":
+            case 'weekly':
                 current.setDate(current.getDate() + 7);
                 break;
-            case "biweekly":
+            case 'biweekly':
                 current.setDate(current.getDate() + 14);
                 break;
-            case "monthly":
+            case 'monthly':
                 current.setMonth(current.getMonth() + 1);
                 break;
-            case "quarterly":
+            case 'quarterly':
                 current.setMonth(current.getMonth() + 3);
                 break;
-            case "semiannual":
+            case 'semiannual':
                 current.setMonth(current.getMonth() + 6);
                 break;
-            case "yearly":
+            case 'yearly':
                 current.setFullYear(current.getFullYear() + 1);
                 break;
         }

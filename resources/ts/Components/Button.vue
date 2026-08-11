@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 const props = withDefaults(
     defineProps<{
@@ -16,7 +16,7 @@ const props = withDefaults(
         type: 'button',
         disabled: false,
     },
-)
+);
 
 const variantClasses: Record<NonNullable<typeof props.variant>, string> = {
     solid: 'border-white/10 bg-white text-slate-950 hover:bg-slate-200',
@@ -27,19 +27,19 @@ const variantClasses: Record<NonNullable<typeof props.variant>, string> = {
     amber: 'border-amber-400/35 bg-amber-500/10 text-amber-100 hover:bg-amber-500/15',
     emerald: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15',
     rose: 'border-rose-400/35 bg-rose-500/10 text-rose-100 hover:bg-rose-500/15',
-}
+};
 
 const sizeClasses = {
     sm: 'px-2.5 py-1 text-xs',
     md: 'px-4 py-3 text-sm',
-}
+};
 
 const buttonClasses = computed(() => [
     'inline-flex cursor-pointer items-center justify-center rounded-full border font-medium transition disabled:cursor-not-allowed disabled:opacity-60',
     variantClasses[props.variant],
     sizeClasses[props.size],
     props.block ? 'w-full' : '',
-])
+]);
 </script>
 
 <template>

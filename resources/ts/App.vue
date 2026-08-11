@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
-import axios from "axios";
-import { useRoute, RouterLink, RouterView } from "vue-router";
+import axios from "axios"
+import { computed, onMounted, ref, watch } from "vue"
+import { useRoute, RouterLink, RouterView } from "vue-router"
 
-import type { InvoiceIndexResponse, InvoiceEvent } from "@/Types/Invoice";
+import Widget from "@/Components/Widget.vue"
+import Calculator from "@/Widgets/Calculator.vue"
 
-const invoices = ref<InvoiceEvent[]>([]);
-const route = useRoute();
-const isCompactView = ref(false);
+import type { InvoiceIndexResponse, InvoiceEvent } from "@/Types/Invoice"
+
+
+const invoices = ref<InvoiceEvent[]>([])
+const route = useRoute()
+const isCompactView = ref(false)
 
 const invoiceQuery = computed(() => ({
     q: typeof route.query.q === "string" ? route.query.q : undefined,
@@ -27,41 +31,41 @@ const invoiceQuery = computed(() => ({
         typeof route.query.per_page === "string"
             ? route.query.per_page
             : undefined,
-}));
+}))
 
 const fetchInvoices = async () => {
     try {
         const response = await axios.get<InvoiceIndexResponse>("/invoices", {
             params: invoiceQuery.value,
-        });
+        })
 
         if (response.status !== 200) {
-            console.error("Failed to fetch invoices:", response.statusText);
-            return;
+            console.error("Failed to fetch invoices:", response.statusText)
+            return
         }
 
-        invoices.value = response.data.data;
+        invoices.value = response.data.data
     } catch (error) {
-        console.error("Error fetching invoices:", error);
+        console.error("Error fetching invoices:", error)
     }
-};
+}
 
 const updateCalendarView = () => {
-    isCompactView.value = window.innerWidth < 768;
-};
+    isCompactView.value = window.innerWidth < 768
+}
 
 onMounted(async () => {
-    await fetchInvoices();
+    await fetchInvoices()
     updateCalendarView()
     window.addEventListener('resize', updateCalendarView)
-});
+})
 
 watch(
     () => route.fullPath,
     async () => {
-        await fetchInvoices();
+        await fetchInvoices()
     },
-);
+)
 </script>
 
 <template>
@@ -73,7 +77,7 @@ watch(
         ></div>
 
         <div
-            class="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8"
+            class="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-2 sm:px-4 py-5 md:px-6 lg:px-8 lg:py-8"
         >
             <header
                 class="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between"
@@ -190,6 +194,9 @@ watch(
             </main>
         </div>
     </div>
+    <Widget icon="calculator">
+        <Calculator />
+    </Widget>
 </template>
 
 <style scoped>

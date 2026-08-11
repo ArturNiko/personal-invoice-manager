@@ -1,113 +1,94 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
-import { useRouter } from "vue-router";
-import { useRoute } from "vue-router";
-import axios from "axios";
+import { computed, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
+import axios from 'axios';
 
-import { formatMoney, normalizeDateValue } from "@/Utils/Helpers";
-import { calculateOccurrencesCount } from "@/Utils/Occurrences";
+import { formatMoney, normalizeDateValue } from '@/Utils/Helpers';
+import { calculateOccurrencesCount } from '@/Utils/Occurrences';
 import {
     currencyOptions,
     invoiceRecurrenceOptions,
     invoiceStatusOptions,
     invoiceTypeOptions,
-} from "@/Utils/Consts";
+} from '@/Utils/Consts';
 
-import InputText from "@/Components/Form/InputText.vue";
-import InputDate from "@/Components/Form/InputDate.vue";
-import InputBalance from "@/Components/Form/InputBalance.vue";
-import InputSelect from "@/Components/Form/InputSelect.vue";
-import Button from "@/Components/Button.vue";
-import FileInput from "@/Components/Form/FileInput.vue";
+import InputText from '@/Components/Form/InputText.vue';
+import InputDate from '@/Components/Form/InputDate.vue';
+import InputBalance from '@/Components/Form/InputBalance.vue';
+import InputSelect from '@/Components/Form/InputSelect.vue';
+import Button from '@/Components/Button.vue';
+import FileInput from '@/Components/Form/FileInput.vue';
 
 import {
+    type InvoiceEvent,
+    type InvoiceForm,
     InvoiceRecurrence,
     InvoiceStatuses,
-    InvoiceTypes,
-    type InvoiceEvent,
-} from "@/Types/Invoice";
-import { Currency } from "@/Types/Currency";
+    InvoiceTypes
+} from '@/Types/Invoice';
+import { Currency } from '@/Types/Currency';
 
 
 const router = useRouter();
 const route = useRoute();
 
-const createMode = ref<"manual" | "import">("manual");
+const createMode = ref<'manual' | 'import'>('manual');
 const isSubmitting = ref(false);
 const isImporting = ref(false);
-const submitError = ref("");
-const submitSuccess = ref("");
-const importSuccess = ref("");
+const submitError = ref('');
+const submitSuccess = ref('');
+const importSuccess = ref('');
 const importFile = ref<File | null>(null);
 
-type CreateInvoiceForm = {
-    title: string;
-    type: InvoiceTypes;
-    status: InvoiceStatuses;
-    start_date: string;
-    end_date: string;
-    currency: Currency;
-    recurrence: InvoiceRecurrence;
-    price: string;
-};
-
-const form = reactive<CreateInvoiceForm>({
-    title: "",
+const form = reactive<InvoiceForm>({
+    title: '',
     type: InvoiceTypes.ONE_TIME,
     status: InvoiceStatuses.PENDING,
     start_date: new Date().toISOString().slice(0, 10),
-    end_date: "",
+    end_date: '',
     currency: Currency.EUR,
     recurrence: InvoiceRecurrence.MONTHLY,
-    price: "",
+    price: '',
 });
 
 const isRecurring = computed(() => form.type === InvoiceTypes.RECURRING);
-const isImportMode = computed(() => createMode.value === "import");
+const isImportMode = computed(() => createMode.value === 'import');
 
 const isRecurringRangeInvalid = computed(() => {
-    if (!isRecurring.value || !form.start_date || !form.end_date) {
-        return false;
-    }
+    if (!isRecurring.value || !form.start_date || !form.end_date) return false;
 
     return new Date(form.start_date) > new Date(form.end_date);
 });
 
 const recurringPreviewLabel = computed(() => {
-    if (!isRecurring.value) {
-        return `Price: ${formatMoney(Number(form.price || "0"), form.currency)}`;
-    }
+    if (!isRecurring.value) return `Price: ${formatMoney(Number(form.price || '0'), form.currency)}`;
 
-    if (form.start_date && !form.end_date) {
-        return "Recurring schedule: Endless";
-    }
-
-    if (!form.start_date || !form.end_date) {
-        return "Recurring schedule: not set";
-    }
+    if (form.start_date && !form.end_date) return 'Recurring schedule: Endless';
+    if (!form.start_date || !form.end_date) return 'Recurring schedule: not set';
 
     return `Occurrences: ${calculateOccurrencesCount(form.start_date, form.end_date, form.recurrence)}`;
-});
+})
 
 const priceInputLabel = computed(() =>
-    isRecurring.value ? "Occurrence price" : "Price",
+    isRecurring.value ? 'Occurrence price' : 'Price',
 );
 
 const dateInputLabel = computed(() =>
-    isRecurring.value ? "Start date" : "Date",
+    isRecurring.value ? 'Start date' : 'Date',
 );
 
-const setCreateMode = (mode: "manual" | "import") => {
-    createMode.value = mode;
-    submitError.value = "";
-    submitSuccess.value = "";
-    importSuccess.value = "";
+const setCreateMode = (mode: 'manual' | 'import') => {
+    createMode.value = mode
+    submitError.value = ''
+    submitSuccess.value = ''
+    importSuccess.value = ''
 };
 
 watch(
     () => route.query.date,
     (date) => {
-        const normalizedDate = typeof date === "string" ? normalizeDateValue(date) : "";
+        const normalizedDate = typeof date === 'string' ? normalizeDateValue(date) : '';
 
         if (normalizedDate) form.start_date = normalizedDate;
     },
@@ -115,43 +96,45 @@ watch(
 );
 
 const resetForm = () => {
-    form.title = "";
-    form.type = InvoiceTypes.ONE_TIME;
-    form.status = InvoiceStatuses.PENDING;
-    form.start_date = new Date().toISOString().slice(0, 10);
-    form.end_date = "";
-    form.currency = Currency.EUR;
-    form.recurrence = InvoiceRecurrence.MONTHLY;
-    form.price = "";
-    importFile.value = null;
-    importSuccess.value = "";
+    form.title = ''
+    form.type = InvoiceTypes.ONE_TIME
+    form.status = InvoiceStatuses.PENDING
+    form.start_date = new Date().toISOString().slice(0, 10)
+    form.end_date = ''
+    form.currency = Currency.EUR
+    form.recurrence = InvoiceRecurrence.MONTHLY
+    form.price = ''
+    importFile.value = null
+    importSuccess.value = ''
 };
 
 const submitImport = async () => {
     if (!importFile.value) {
-        submitError.value = "Please choose a PDF file to import.";
+        submitError.value = 'Please choose a PDF file to import.';
         return;
     }
 
     isImporting.value = true;
-    submitError.value = "";
-    importSuccess.value = "";
+    submitError.value = '';
+    importSuccess.value = '';
 
     const formData = new FormData();
-    formData.append("invoice", importFile.value);
+    formData.append('invoice', importFile.value);
 
     try {
-        const response = await axios.post("/invoices/import", formData, {
+        const response = await axios.post('/invoices/import', formData, {
             headers: {
-                "Content-Type": "multipart/form-data",
+                'Content-Type': 'multipart/form-data',
             },
         });
 
-        importSuccess.value = response.data?.message ?? "Invoice is being processed.";
+        importSuccess.value = response.data?.message ?? 'Invoice is being processed.';
         importFile.value = null;
-    } catch (error: any) {
-        submitError.value = error?.response?.data?.message ?? "Failed to import invoice.";
-    } finally {
+    }
+    catch (error: any) {
+        submitError.value = error?.response?.data?.message ?? 'Failed to import invoice.';
+    } 
+    finally {
         isImporting.value = false;
     }
 };
@@ -163,13 +146,13 @@ const submitForm = async () => {
     }
 
     if (isRecurringRangeInvalid.value) {
-        submitError.value = "Recurring end date must be on or after the start date.";
+        submitError.value = 'Recurring end date must be on or after the start date.';
         return;
     }
 
     isSubmitting.value = true;
-    submitError.value = "";
-    submitSuccess.value = "";
+    submitError.value = '';
+    submitSuccess.value = '';
 
     const payload: Partial<InvoiceEvent> & Record<string, string | number | undefined> = {
         title: form.title,
@@ -183,13 +166,13 @@ const submitForm = async () => {
     };
 
     try {
-        await axios.post("/invoices", payload);
-        submitSuccess.value = "Invoice created successfully.";
+        await axios.post('/invoices', payload);
+        submitSuccess.value = 'Invoice created successfully.';
         resetForm();
-        await router.push({ path: "/list", query: { updated: "1" } });
+        await router.push({ path: '/list', query: { updated: '1' } });
     } 
     catch (error: any) {
-        submitError.value = error?.response?.data?.message ?? "Failed to create invoice.";
+        submitError.value = error?.response?.data?.message ?? 'Failed to create invoice.';
     } 
     finally {
         isSubmitting.value = false;

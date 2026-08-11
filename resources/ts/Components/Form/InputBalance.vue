@@ -1,34 +1,34 @@
 <script setup lang="ts">
-import InputLabel from "./InputLabel.vue";
+import InputLabel from "./InputLabel.vue"
 
 const props = defineProps<{
-    modelValue: string;
-    currency: string;
-    label: string;
-    currencyLabel?: string;
-    placeholder?: string;
-    required?: boolean;
-    disabled?: boolean;
-    min?: number | string;
-    step?: number | string;
+    modelValue: string
+    currency: string
+    label: string
+    currencyLabel?: string
+    placeholder?: string
+    required?: boolean
+    disabled?: boolean
+    min?: number | string
+    step?: number | string
     currencyOptions: ReadonlyArray<{
-        readonly label: string;
-        readonly value: string;
-    }>;
-}>();
+        readonly label: string
+        readonly value: string
+    }>
+}>()
 
 const emit = defineEmits<{
-    "update:modelValue": [value: string];
-    "update:currency": [value: string];
-}>();
+    "update:modelValue": [value: string]
+    "update:currency": [value: string]
+}>()
 
 const handleAmountInput = (event: Event) => {
-    emit("update:modelValue", (event.target as HTMLInputElement).value);
-};
+    emit("update:modelValue", (event.target as HTMLInputElement).value)
+}
 
 const handleCurrencyChange = (event: Event) => {
-    emit("update:currency", (event.target as HTMLSelectElement).value);
-};
+    emit("update:currency", (event.target as HTMLSelectElement).value)
+}
 </script>
 
 <template>

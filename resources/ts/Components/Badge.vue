@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 const props = withDefaults(
     defineProps<{
@@ -10,7 +10,7 @@ const props = withDefaults(
         variant: 'sky',
         size: 'sm',
     },
-)
+);
 
 const variantClasses: Record<NonNullable<typeof props.variant>, string> = {
     sky: 'border-sky-400/30 bg-sky-400/10 text-sky-200',
@@ -18,18 +18,18 @@ const variantClasses: Record<NonNullable<typeof props.variant>, string> = {
     emerald: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100',
     rose: 'border-rose-400/35 bg-rose-500/10 text-rose-100',
     amber: 'border-amber-400/35 bg-amber-500/10 text-amber-100',
-}
+};
 
 const sizeClasses = {
     sm: 'px-2.5 py-1 text-xs',
     md: 'px-3 py-1 text-sm',
-}
+};
 
 const badgeClasses = computed(() => [
     'inline-flex items-center rounded-full border font-medium leading-none w-fit shrink-0 whitespace-nowrap',
     variantClasses[props.variant],
     sizeClasses[props.size],
-])
+]);
 </script>
 
 <template>

@@ -29,4 +29,4 @@ export const getCurrencySymbol = (currency: Currency): string => {
         default:
             return currency;
     }
-}
+};

@@ -53,3 +53,14 @@ export enum InvoiceRecurrence {
     SEMIANNUAL = "semiannual",
     YEARLY = "yearly",
 }
+
+export interface InvoiceForm {
+    title: string
+    type: InvoiceTypes
+    status: InvoiceStatuses
+    start_date: string
+    end_date: string
+    currency: Currency
+    recurrence: InvoiceRecurrence
+    price: string
+}

@@ -1,25 +1,25 @@
-import { InvoiceStatuses, InvoiceTypes, InvoiceRecurrence } from "@/Types/Invoice";
-import { Currency } from "@/Types/Currency";
+import { InvoiceStatuses, InvoiceTypes, InvoiceRecurrence } from '@/Types/Invoice';
+import { Currency } from '@/Types/Currency';
 
 export const invoiceStatusOptions = [
-    { label: "Pending", value: InvoiceStatuses.PENDING },
-    { label: "Paid", value: InvoiceStatuses.PAID },
-    { label: "Overdue", value: InvoiceStatuses.OVERDUE },
+    { label: 'Pending', value: InvoiceStatuses.PENDING },
+    { label: 'Paid', value: InvoiceStatuses.PAID },
+    { label: 'Overdue', value: InvoiceStatuses.OVERDUE },
 ];
 
 export const invoiceTypeOptions = [
-    { label: "One-time", value: InvoiceTypes.ONE_TIME },
-    { label: "Recurring", value: InvoiceTypes.RECURRING },
+    { label: 'One-time', value: InvoiceTypes.ONE_TIME },
+    { label: 'Recurring', value: InvoiceTypes.RECURRING },
 ];
 
 export const invoiceRecurrenceOptions = [
-    { label: "None", value: InvoiceRecurrence.NONE },
-    { label: "Weekly", value: InvoiceRecurrence.WEEKLY },
-    { label: "Biweekly", value: InvoiceRecurrence.BIWEEKLY },
-    { label: "Monthly", value: InvoiceRecurrence.MONTHLY },
-    { label: "Quarterly", value: InvoiceRecurrence.QUARTERLY },
-    { label: "Semiannual", value: InvoiceRecurrence.SEMIANNUAL },
-    { label: "Yearly", value: InvoiceRecurrence.YEARLY },
+    { label: 'None', value: InvoiceRecurrence.NONE },
+    { label: 'Weekly', value: InvoiceRecurrence.WEEKLY },
+    { label: 'Biweekly', value: InvoiceRecurrence.BIWEEKLY },
+    { label: 'Monthly', value: InvoiceRecurrence.MONTHLY },
+    { label: 'Quarterly', value: InvoiceRecurrence.QUARTERLY },
+    { label: 'Semiannual', value: InvoiceRecurrence.SEMIANNUAL },
+    { label: 'Yearly', value: InvoiceRecurrence.YEARLY },
 ];
 
 export const currencyOptions = [

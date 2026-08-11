@@ -1,36 +1,36 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import axios from "axios";
-import { getCurrencySymbol } from "@/Utils/Currency";
-import { useRoute, useRouter } from "vue-router";
+import { computed, ref } from "vue"
+import axios from "axios"
+import { getCurrencySymbol } from "@/Utils/Currency"
+import { useRoute, useRouter } from "vue-router"
 
-import { InvoiceTypes, type InvoiceEvent } from "@/Types/Invoice";
-import Badge from "@/Components/Badge.vue";
-import Button from "@/Components/Button.vue";
+import { InvoiceTypes, type InvoiceEvent } from "@/Types/Invoice"
+import Badge from "@/Components/Badge.vue"
+import Button from "@/Components/Button.vue"
 
-const props = defineProps<{ invoices: InvoiceEvent[] }>();
+const props = defineProps<{ invoices: InvoiceEvent[] }>()
 
-const route = useRoute();
-const router = useRouter();
-const deletingInvoiceId = ref<number | null>(null);
+const route = useRoute()
+const router = useRouter()
+const deletingInvoiceId = ref<number | null>(null)
 
 const searchQuery = computed({
     get: () => (typeof route.query.q === "string" ? route.query.q : ""),
     set: (value: string) => {
-        updateQuery({ q: value || undefined });
+        updateQuery({ q: value || undefined })
     },
-});
+})
 
 const typeFilter = computed({
     get: () => {
         const value =
-            typeof route.query.type === "string" ? route.query.type : "all";
-        return value === InvoiceTypes.ONE_TIME || value === InvoiceTypes.RECURRING ? value : "all";
+            typeof route.query.type === "string" ? route.query.type : "all"
+        return value === InvoiceTypes.ONE_TIME || value === InvoiceTypes.RECURRING ? value : "all"
     },
     set: (value: "all" | InvoiceTypes.ONE_TIME | InvoiceTypes.RECURRING) => {
-        updateQuery({ type: value === "all" ? undefined : value });
+        updateQuery({ type: value === "all" ? undefined : value })
     },
-});
+})
 
 const sortDirection = computed({
     get: () => (route.query.direction === "desc" ? "descending" : "ascending"),
@@ -38,9 +38,9 @@ const sortDirection = computed({
         updateQuery({
             sort: "start_date",
             direction: value === "ascending" ? "asc" : "desc",
-        });
+        })
     },
-});
+})
 
 const updateQuery = (updates: Record<string, string | undefined>) => {
     router.replace({
@@ -48,118 +48,118 @@ const updateQuery = (updates: Record<string, string | undefined>) => {
             ...route.query,
             ...updates,
         },
-    });
-};
+    })
+}
 
-const visibleInvoices = computed(() => props.invoices);
+const visibleInvoices = computed(() => props.invoices)
 
 const filteredRecurringCount = computed(() => {
     return visibleInvoices.value.filter(
         (invoice) => invoice.type === InvoiceTypes.RECURRING,
-    ).length;
-});
+    ).length
+})
 
 const filteredOneTimeCount = computed(() => {
     return visibleInvoices.value.filter(
         (invoice) => invoice.type === InvoiceTypes.ONE_TIME,
-    ).length;
-});
+    ).length
+})
 
 const toggleSortDirection = () => {
     sortDirection.value =
-        sortDirection.value === "ascending" ? "descending" : "ascending";
-};
+        sortDirection.value === "ascending" ? "descending" : "ascending"
+}
 
 const getTypeCountLabel = (count: number) => {
-    return count === 1 ? "item" : "items";
-};
+    return count === 1 ? "item" : "items"
+}
 
 const formatDate = (dateValue?: string) => {
     if (!dateValue) {
-        return "No due date";
+        return "No due date"
     }
 
-    const parsedDate = new Date(dateValue);
+    const parsedDate = new Date(dateValue)
 
     if (Number.isNaN(parsedDate.getTime())) {
-        return dateValue;
+        return dateValue
     }
 
     return new Intl.DateTimeFormat("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
-    }).format(parsedDate);
-};
+    }).format(parsedDate)
+}
 
 const formatAmount = (invoice: InvoiceEvent) => {
-    const amount = invoice.price;
-    const symbol = getCurrencySymbol(invoice.currency);
+    const amount = invoice.price
+    const symbol = getCurrencySymbol(invoice.currency)
 
-    return `${symbol}${amount}`;
-};
+    return `${symbol}${amount}`
+}
 
 const getTypeVariant = (type: string) => {
     return type === "recurring"
         ? "teal"
-        : "sky";
-};
+        : "sky"
+}
 
 const getTypeLabel = (type: string) => {
-    return type === InvoiceTypes.RECURRING ? "Recurring" : "One-time";
-};
+    return type === InvoiceTypes.RECURRING ? "Recurring" : "One-time"
+}
 
 const getStatusVariant = (status: string) => {
     switch (status) {
         case "paid":
-            return "emerald";
+            return "emerald"
         case "overdue":
-            return "rose";
+            return "rose"
         default:
-            return "amber";
+            return "amber"
     }
-};
+}
 
 const getStatusLabel = (status: string) => {
     switch (status) {
         case "paid":
-            return "Paid";
+            return "Paid"
         case "overdue":
-            return "Overdue";
+            return "Overdue"
         default:
-            return "Pending";
+            return "Pending"
     }
-};
+}
 
 const editInvoice = (id: number) => {
-    router.push({ name: "invoice-edit", params: { id: id.toString() } });
-};
+    router.push({ name: "invoice-edit", params: { id: id.toString() } })
+}
 
 const deleteInvoice = async (id: number) => {
     const confirmed = window.confirm(
         "Delete this invoice? This cannot be undone.",
-    );
+    )
 
     if (!confirmed) {
-        return;
+        return
     }
 
-    deletingInvoiceId.value = id;
+    deletingInvoiceId.value = id
 
     try {
-        await axios.delete(`/invoices/${id}`);
+        await axios.delete(`/invoices/${id}`)
         await router.replace({
             query: {
                 ...route.query,
                 deleted: String(Date.now()),
             },
-        });
+        })
     } catch (error) {
-        console.error("Failed to delete invoice:", error);
+        console.error("Failed to delete invoice:", error)
     } finally {
-        deletingInvoiceId.value = null;
+        deletingInvoiceId.value = null
     }
-};
+}
 </script>
 
 <template>
