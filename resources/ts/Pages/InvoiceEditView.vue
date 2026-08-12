@@ -17,6 +17,7 @@ import InputDate from '@/Components/Form/InputDate.vue';
 import InputBalance from '@/Components/Form/InputBalance.vue';
 import InputSelect from '@/Components/Form/InputSelect.vue';
 import Button from '@/Components/Button.vue';
+import ConfirmationDialog from '@/Components/ConfirmationDialog.vue';
 
 import { 
     type InvoiceEvent, 
@@ -35,6 +36,7 @@ const loading = ref(true);
 const loadError = ref('');
 const isSubmitting = ref(false);
 const isDeleting = ref(false);
+const isDeleteDialogOpen = ref(false);
 const submitError = ref('');
 const submitSuccess = ref('');
 
@@ -146,9 +148,17 @@ const submitForm = async () => {
 const deleteInvoice = async () => {
     if (!invoice.value?.id) return;
 
-    const confirmed = window.confirm('Delete this invoice? This cannot be undone.');
+    isDeleteDialogOpen.value = true;
+};
 
-    if (!confirmed) return;
+const closeDeleteDialog = () => {
+    if (isDeleting.value) return;
+
+    isDeleteDialogOpen.value = false;
+};
+
+const confirmDeleteInvoice = async () => {
+    if (!invoice.value?.id) return;
 
     isDeleting.value = true;
     submitError.value = '';
@@ -156,6 +166,7 @@ const deleteInvoice = async () => {
     try {
         await axios.delete(`/invoices/${invoice.value.id}`);
         invoice.value = null;
+        isDeleteDialogOpen.value = false;
         await router.push({ path: '/list', query: { deleted: '1' } });
     }
     catch (error: any) {
@@ -247,4 +258,15 @@ onMounted(loadInvoice);
             </aside>
         </form>
     </section>
+
+    <ConfirmationDialog
+        :open="isDeleteDialogOpen"
+        :busy="isDeleting"
+        title="Delete invoice?"
+        message="This action cannot be undone."
+        confirm-label="Delete"
+        cancel-label="Keep it"
+        @close="closeDeleteDialog"
+        @confirm="confirmDeleteInvoice"
+    />
 </template>

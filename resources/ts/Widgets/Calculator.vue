@@ -1,297 +1,189 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
-type HistoryItem = { id: string; expression: string; result: string }
+type HistoryItem = { id: string; expression: string; result: string };
 
-const STORAGE_KEY = 'tally-calculator-history'
-const opSymbols: Record<string, string> = { '+': '+', '-': '−', '*': '×', '/': '÷' }
+const STORAGE_KEY = 'tally-calculator-history';
 
-const display = ref('0')
-const expression = ref('')
-const previous = ref<number | null>(null)
-const operator = ref<string | null>(null)
-const waitingForOperand = ref(false)
-const historyOpen = ref(false)
-const history = ref<HistoryItem[]>([])
-const activeKeyId = ref<string | null>(null)
-const keyUpTimer = ref<ReturnType<typeof window.setTimeout> | null>(null)
-const tapeSection = ref<HTMLElement | null>(null)
+const currentInput = ref('0');
+const expression = ref('');
+const history = ref<HistoryItem[]>([]);
+const historyOpen = ref(false);
 
-const formattedDisplay = computed(() => {
-    if (display.value === 'Error') {
-        return 'Error'
-    }
 
-    const [intPart, decPart] = display.value.split('.')
-    const sign = intPart.startsWith('-') ? '-' : ''
-    const intAbs = sign ? intPart.slice(1) : intPart
-    const withCommas = intAbs.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+const isError = () => computed(() => currentInput.value === 'Error');
+const isEmpty = () => computed(() => currentInput.value === '0' || currentInput.value === '');
+const isLastDigit = () => computed(() => currentInput.value.length > 0 && /\d$/.test(currentInput.value));
+const isLastOperator = () => computed(() => currentInput.value.length > 0 && / [+\-*/%]$/.test(currentInput.value));
 
-    return sign + withCommas + (decPart !== undefined ? `.${decPart}` : '')
-})
-
-function formatNumber(n: number) {
-    if (!Number.isFinite(n)) {
-        return 'Error'
-    }
-
-    const rounded = Number(n.toPrecision(12))
-    return rounded.toString()
-}
-
-function compute(a: number, b: number, op: string) {
-    switch (op) {
-        case '+':
-            return a + b
-        case '-':
-            return a - b
-        case '*':
-            return a * b
-        case '/':
-            return b === 0 ? Number.NaN : a / b
-        default:
-            return b
-    }
-}
-
-function clearAll() {
-    display.value = '0'
-    expression.value = ''
-    previous.value = null
-    operator.value = null
-    waitingForOperand.value = false
-}
-
-function saveHistory() {
-    try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(history.value))
-    } catch {
-        // storage unavailable
-    }
-}
-
-function addHistory(nextExpression: string, result: string) {
+const saveHistory = () => {
     history.value.unshift({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        expression: nextExpression,
-        result,
-    })
+        id: Date.now().toString(),
+        expression: expression.value,
+        result: currentInput.value,
+    });
+        
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history.value));
+};
 
-    if (history.value.length > 50) {
-        history.value.pop()
+const clearHistory = () => {
+    history.value = [];
+    localStorage.removeItem(STORAGE_KEY);
+};
+
+const toggleHistory = () => {
+    historyOpen.value = !historyOpen.value;
+};
+
+const recallFromHistory = (item: HistoryItem) => {
+    currentInput.value = item.result;
+    historyOpen.value = false;
+};
+
+const clearAll = () => {
+    currentInput.value = '0';
+};
+
+const clearLast = () => {
+    if (isError().value || isEmpty().value) {
+        currentInput.value = '0';
+        return;
     }
 
-    saveHistory()
-}
+    currentInput.value = currentInput.value.slice(0, -1).trim();
 
-function inputDigit(digit: string) {
-    if (display.value === 'Error') {
-        clearAll()
-    }
+    if (isEmpty().value) currentInput.value = '0';
+};
 
-    if (waitingForOperand.value) {
-        display.value = digit
-        waitingForOperand.value = false
-    } else {
-        display.value = display.value === '0' ? digit : display.value + digit
-    }
-}
-
-function inputDecimal() {
-    if (display.value === 'Error') {
-        clearAll()
-    }
-
-    if (waitingForOperand.value) {
-        display.value = '0.'
-        waitingForOperand.value = false
-    } else if (!display.value.includes('.')) {
-        display.value += '.'
-    }
-}
-
-function toggleSign() {
-    if (display.value === 'Error') {
-        return
-    }
-
-    display.value = display.value.startsWith('-') ? display.value.slice(1) : `-${display.value}`
-}
-
-function percent() {
-    if (display.value === 'Error') {
-        return
-    }
-
-    display.value = formatNumber(Number.parseFloat(display.value) / 100)
-}
-
-function backspace() {
-    if (display.value === 'Error') {
-        clearAll()
-        return
-    }
-
-    if (waitingForOperand.value) {
-        return
-    }
-
-    display.value = display.value.length > 1 ? display.value.slice(0, -1) : '0'
-}
-
-function setOperator(nextOperator: string) {
-    if (display.value === 'Error') {
-        clearAll()
-    }
-
-    const inputValue = Number.parseFloat(display.value)
-
-    if (previous.value === null) {
-        previous.value = inputValue
-    } else if (operator.value && !waitingForOperand.value) {
-        const result = compute(previous.value, inputValue, operator.value)
-        display.value = formatNumber(result)
-        previous.value = Number.parseFloat(display.value)
-    }
-
-    operator.value = nextOperator
-    waitingForOperand.value = true
-    expression.value = `${formatNumber(previous.value as number)} ${opSymbols[nextOperator]}`
-}
-
-function equals() {
-    if (operator.value === null || previous.value === null || display.value === 'Error') {
-        return
-    }
-
-    const inputValue = Number.parseFloat(display.value)
-    const exprStr = `${formatNumber(previous.value)} ${opSymbols[operator.value]} ${formatNumber(inputValue)}`
-    const result = compute(previous.value, inputValue, operator.value)
-    const resultStr = formatNumber(result)
-
-    display.value = resultStr
-    expression.value = ''
-
-    if (resultStr !== 'Error') {
-        addHistory(exprStr, resultStr)
-    }
-
-    previous.value = null
-    operator.value = null
-    waitingForOperand.value = true
-}
-
-function recall(item: HistoryItem) {
-    display.value = item.result
-    expression.value = ''
-    previous.value = null
-    operator.value = null
-    waitingForOperand.value = true
-}
-
-function clearHistory() {
-    history.value = []
-    saveHistory()
-}
-
-function toggleHistory() {
-    historyOpen.value = !historyOpen.value
-
-    if (historyOpen.value) {
-        void nextTick().then(() => {
-            tapeSection.value?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'end',
-            })
-        })
-    }
-}
-
-function loadHistory() {
+const calculateResult = () => {
     try {
-        const raw = window.localStorage.getItem(STORAGE_KEY)
-        if (raw) {
-            history.value = JSON.parse(raw) as HistoryItem[]
-        }
-    } catch {
-        history.value = []
+        if (isError().value || isEmpty().value) currentInput.value = '0';
+
+        if (!/[+\-*/%]/.test(currentInput.value)) return;
+
+        const result = new Function(`return ${currentInput.value}`)();
+        expression.value = currentInput.value;
+        currentInput.value = result.toString();
+        saveHistory();
+    } 
+    catch (error) {
+        console.error('Error calculating result:', error);
+        currentInput.value = 'Error';
     }
-}
+};
 
-function onKeyup() {
-    activeKeyId.value = null
-}
-
-function onKeydown(event: KeyboardEvent) {
-    if (event.metaKey || event.ctrlKey || event.altKey) {
-        return
-    }
-
-    let id: string | null = null
-
-    if (event.key >= '0' && event.key <= '9') {
-        id = event.key
-        inputDigit(event.key)
-    } else if (event.key === '.' || event.code === 'NumpadDecimal') {
-        id = '.'
-        inputDecimal()
-    } else if (event.key === '+' || event.code === 'NumpadAdd') {
-        id = '+'
-        setOperator('+')
-    } else if (event.key === '-' || event.code === 'NumpadSubtract') {
-        id = '-'
-        setOperator('-')
-    } else if (event.key === '*' || event.code === 'NumpadMultiply') {
-        id = '*'
-        setOperator('*')
-    } else if (event.key === '/' || event.code === 'NumpadDivide') {
-        event.preventDefault()
-        id = '/'
-        setOperator('/')
-    } else if (event.key === 'Enter' || event.key === '=' || event.code === 'NumpadEnter') {
-        event.preventDefault()
-        id = 'enter'
-        equals()
-    } else if (event.key === 'Backspace') {
-        backspace()
-    } else if (event.key === 'Delete' || event.key === 'Escape' || event.key === 'Clear') {
-        id = 'escape'
-        clearAll()
-    } else if (event.key === '%') {
-        id = '%'
-        percent()
-    } else if (event.key.toLowerCase() === 'n') {
-        id = 'sign'
-        toggleSign()
-    } else {
-        return
+const setOperator = (operator: string) => {
+    if (isError().value || isEmpty().value) {
+        currentInput.value = '0';
+        return;
     }
 
-    activeKeyId.value = id
-
-    if (keyUpTimer.value !== null) {
-        clearTimeout(keyUpTimer.value)
+    if (isLastOperator().value) {
+        currentInput.value = currentInput.value.slice(0, -2).trim();
+        currentInput.value += ` ${operator}`;
     }
 
-    keyUpTimer.value = window.setTimeout(() => {
-        activeKeyId.value = null
-    }, 250)
-}
+    if (!isLastDigit().value) return;
+
+    currentInput.value += ` ${operator}`;
+};
+
+const inputDecimal = () => {
+    if (isError().value || isEmpty().value) {
+        currentInput.value = '0.';
+        return;
+    }
+
+    if (isLastOperator().value) {
+        currentInput.value += '0.';
+        return;
+    }
+
+    currentInput.value += '.';
+
+};
+
+const inputDigit = (digit: string) => {
+    if (isError().value || isEmpty().value) {
+        currentInput.value = digit;
+        return;
+    }
+
+    if (isLastOperator().value) {
+        currentInput.value += ` ${digit}`;
+        return;
+    }
+
+    currentInput.value += digit;
+};
+
+const toggleSign = () => {
+    if (isError().value || isEmpty().value) {
+        currentInput.value = '0';
+        return;
+    }
+
+    if (isLastOperator().value) {
+        return;
+    }
+
+    const parts = currentInput.value.split(' ');
+    const lastPart = parts[parts.length - 1];
+    const toggledPart = lastPart.startsWith('-') ? lastPart.slice(1) : `-${lastPart}`;
+    parts[parts.length - 1] = toggledPart;
+    currentInput.value = parts.join(' ');
+};
+
+const isOperatorActive = (operator: string) => {
+    if (isError().value || isEmpty().value) return false;
+
+    const parts = currentInput.value.split(' ');
+    const lastPart = parts[parts.length - 1];
+    return lastPart === operator;
+};
+
+const handleKeydown = (event: KeyboardEvent) => {
+    const key = event.key;
+
+    switch (key) {
+        case 'Enter':
+            calculateResult();
+            break;
+        case 'Backspace':
+            clearLast();
+            break;    
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+        case '%':
+            setOperator(key);
+            break;
+        case '.':
+            inputDecimal();
+            break;
+        default:
+            if (!isNaN(Number(key))) inputDigit(key);
+    }
+};
 
 onMounted(() => {
-    loadHistory()
-    window.addEventListener('keydown', onKeydown)
-    window.addEventListener('keyup', onKeyup)
-})
+    const storedHistory = localStorage.getItem(STORAGE_KEY);
+    if (storedHistory) {
+        try {
+            history.value = JSON.parse(storedHistory);
+        } 
+        catch (error) {
+            console.error('Failed to parse stored history:', error);
+        }
+    }
+
+    document.addEventListener('keydown', handleKeydown);
+});
 
 onBeforeUnmount(() => {
-    window.removeEventListener('keydown', onKeydown)
-    window.removeEventListener('keyup', onKeyup)
-
-    if (keyUpTimer.value !== null) {
-        clearTimeout(keyUpTimer.value)
-    }
-})
+    document.removeEventListener('keydown', handleKeydown);
+});
 </script>
 
 <template>
@@ -302,41 +194,42 @@ onBeforeUnmount(() => {
 
         <div class="relative z-10 rounded-[22px] bg-gradient-to-br from-[#252a37] to-[#1d212c] p-[18px] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-1px_0_rgba(0,0,0,0.4)]">
             <div class="mb-[14px] flex min-h-[96px] flex-col justify-end overflow-hidden rounded-[14px] bg-[#0b0d12] px-[18px] pb-4 pt-[22px] shadow-inner shadow-black/60">
-                <div class="h-4 truncate text-right font-mono text-[13px] tracking-[0.02em] text-[#5c6070]">
+                <div ref="topLineRef" class="calculator-scrollbar-none h-4 overflow-x-auto overflow-y-hidden whitespace-nowrap text-right font-mono text-[12px] tracking-[0.02em] text-[#5c6070]">
                     {{ expression || '\u00A0' }}
                 </div>
                 <div
-                    class="truncate text-right font-mono text-[clamp(28px,8.5vw,42px)] font-semibold leading-[1.15] text-[#f4efe4] [text-shadow:0_0_18px_rgba(244,239,228,0.18)]"
-                    :class="{ 'text-orange-400': display === 'Error' }"
+                    ref="mainLineRef"
+                    class="calculator-scrollbar-none overflow-x-auto overflow-y-hidden whitespace-nowrap text-right font-mono text-[clamp(24px,7.2vw,38px)] font-semibold leading-[1.15] text-[#f4efe4] [text-shadow:0_0_18px_rgba(244,239,228,0.18)]"
+                    :class="{ 'text-orange-400': isError }"
                 >
-                    {{ formattedDisplay }}
+                    {{ currentInput || '\u00A0' }}
                 </div>
             </div>
 
-            <div class="grid grid-cols-4 gap-2.5">
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === 'escape' }" @click="clearAll">C</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === 'sign' }" @click="toggleSign">±</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '%' }" @click="percent">%</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': operator === '/', pressed: activeKeyId === '/' }" @click="setOperator('/')">÷</button>
+            <div class="grid grid-cols-4 gap-2">
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[15px] sm:text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="clearAll">C</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[15px] sm:text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="toggleSign">±</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[15px] sm:text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="setOperator('%')">%</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': isOperatorActive('/') }" @click="setOperator('/')">÷</button>
 
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '7' }" @click="inputDigit('7')">7</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '8' }" @click="inputDigit('8')">8</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '9' }" @click="inputDigit('9')">9</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': operator === '*', pressed: activeKeyId === '*' }" @click="setOperator('*')">×</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('7')">7</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('8')">8</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('9')">9</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': isOperatorActive('*') }" @click="setOperator('*')">×</button>
 
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '4' }" @click="inputDigit('4')">4</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '5' }" @click="inputDigit('5')">5</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '6' }" @click="inputDigit('6')">6</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': operator === '-', pressed: activeKeyId === '-' }" @click="setOperator('-')">−</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('4')">4</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('5')">5</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('6')">6</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': isOperatorActive('-') }" @click="setOperator('-')">−</button>
 
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '1' }" @click="inputDigit('1')">1</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '2' }" @click="inputDigit('2')">2</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '3' }" @click="inputDigit('3')">3</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': operator === '+', pressed: activeKeyId === '+' }" @click="setOperator('+')">+</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('1')">1</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('2')">2</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('3')">3</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': isOperatorActive('+') }" @click="setOperator('+')">+</button>
 
-                <button class="col-span-2 h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '0' }" @click="inputDigit('0')">0</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === '.' }" @click="inputDecimal">.</button>
-                <button class="h-[58px] rounded-xl border border-transparent bg-gradient-to-br from-[#ffa05e] to-[#ff8a3d] font-mono text-[19px] font-bold text-[#1a1206] shadow-[0_4px_14px_-2px_rgba(255,138,61,0.5)] transition duration-[60ms] hover:brightness-105 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ pressed: activeKeyId === 'enter' }" @click="equals">=</button>
+                <button class="col-span-2 h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('0')">0</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDecimal">.</button>
+                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-gradient-to-br from-[#ffa05e] to-[#ff8a3d] font-mono text-[18px] sm:text-[19px] font-bold text-[#1a1206] shadow-[0_4px_14px_-2px_rgba(255,138,61,0.5)] transition duration-[60ms] hover:brightness-105 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="calculateResult">=</button>
             </div>
         </div>
 
@@ -352,7 +245,7 @@ onBeforeUnmount(() => {
                         v-for="item in history"
                         :key="item.id"
                         class="cursor-pointer border-b border-dashed border-[#d9cfb6] px-4 py-[9px] font-mono transition hover:bg-black/5 last:border-b-0"
-                        @click="recall(item)"
+                        @click="recallFromHistory(item)"
                         title="Click to reuse this result"
                     >
                         <div class="text-[12px] text-[#7a705c]">{{ item.expression }}</div>
@@ -375,3 +268,12 @@ onBeforeUnmount(() => {
         </div>
     </div>
 </template>
+<style scoped>
+.calculator-scrollbar-none {
+    scrollbar-width: none;
+}
+
+.calculator-scrollbar-none::-webkit-scrollbar {
+    display: none;
+}
+</style>

@@ -7,12 +7,14 @@ import { useRoute, useRouter } from "vue-router"
 import { InvoiceTypes, type InvoiceEvent } from "@/Types/Invoice"
 import Badge from "@/Components/Badge.vue"
 import Button from "@/Components/Button.vue"
+import ConfirmationDialog from "@/Components/ConfirmationDialog.vue"
 
 const props = defineProps<{ invoices: InvoiceEvent[] }>()
 
 const route = useRoute()
 const router = useRouter()
 const deletingInvoiceId = ref<number | null>(null)
+const pendingDeleteInvoice = ref<InvoiceEvent | null>(null)
 
 const searchQuery = computed({
     get: () => (typeof route.query.q === "string" ? route.query.q : ""),
@@ -52,6 +54,13 @@ const updateQuery = (updates: Record<string, string | undefined>) => {
 }
 
 const visibleInvoices = computed(() => props.invoices)
+const pendingDeleteMessage = computed(() => {
+    if (!pendingDeleteInvoice.value) {
+        return 'This action cannot be undone.'
+    }
+
+    return `Delete "${pendingDeleteInvoice.value.title}"? This cannot be undone.`
+})
 
 const filteredRecurringCount = computed(() => {
     return visibleInvoices.value.filter(
@@ -135,19 +144,26 @@ const editInvoice = (id: number) => {
     router.push({ name: "invoice-edit", params: { id: id.toString() } })
 }
 
-const deleteInvoice = async (id: number) => {
-    const confirmed = window.confirm(
-        "Delete this invoice? This cannot be undone.",
-    )
+const promptDeleteInvoice = (invoice: InvoiceEvent) => {
+    pendingDeleteInvoice.value = invoice
+}
 
-    if (!confirmed) {
-        return
-    }
+const closeDeleteDialog = () => {
+    if (deletingInvoiceId.value !== null) return
 
-    deletingInvoiceId.value = id
+    pendingDeleteInvoice.value = null
+}
+
+const confirmDeleteInvoice = async () => {
+    if (!pendingDeleteInvoice.value?.id) return
+
+    const invoiceId = pendingDeleteInvoice.value.id
+
+    deletingInvoiceId.value = invoiceId
 
     try {
-        await axios.delete(`/invoices/${id}`)
+        await axios.delete(`/invoices/${invoiceId}`)
+        pendingDeleteInvoice.value = null
         await router.replace({
             query: {
                 ...route.query,
@@ -286,10 +302,9 @@ const deleteInvoice = async (id: number) => {
                                     variant="danger"
                                     size="sm"
                                     class="w-full sm:w-auto"
-                                    :disabled="deletingInvoiceId === invoice.id"
-                                    @click="deleteInvoice(invoice.id)"
+                                    @click="promptDeleteInvoice(invoice)"
                                 >
-                                    {{ deletingInvoiceId === invoice.id ? 'Deleting...' : 'Delete' }}
+                                    Delete
                                 </Button>
                             </div>
                         </div>
@@ -352,6 +367,17 @@ const deleteInvoice = async (id: number) => {
                     </p>
                 </div>
             </div>
+
+            <ConfirmationDialog
+                :open="pendingDeleteInvoice !== null"
+                :busy="deletingInvoiceId === pendingDeleteInvoice?.id"
+                title="Delete invoice?"
+                :message="pendingDeleteMessage"
+                confirm-label="Delete"
+                cancel-label="Keep it"
+                @close="closeDeleteDialog"
+                @confirm="confirmDeleteInvoice"
+            />
         </div>
     </section>
 </template>

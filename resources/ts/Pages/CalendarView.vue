@@ -35,7 +35,6 @@ const updateCalendarView = () => {
 
     const api = calendarRef.value.getApi();
     const nextView = calendarView.value;
-    console.log('Updating calendar view to:', nextView);
 
     if (api.view?.type !== nextView) {
         api.changeView(nextView);
@@ -207,6 +206,9 @@ const calendarOptions = computed(() => ({
     expandRows: true,
     fixedWeekCount: true,
     dayMaxEventRows: isCompactView.value ? 2 : 3,
+    dayHeaderFormat: isCompactView.value
+        ? { weekday: 'short', day: 'numeric' }
+        : { weekday: 'short' },
     headerToolbar: {
         left: 'prev,next today',
         center: 'title',
@@ -394,10 +396,10 @@ onUnmounted(() => {
 
 /* Base event pill shell and spacing */
 .invoice-calendar.fc .fc-daygrid-event.invoice-event {
-    margin: 0.35rem 0.35rem 0;
+    margin: 0.25rem 0.3rem 0;
     border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 0.9rem;
-    box-shadow: 0 6px 14px rgba(2, 6, 23, 0.32);
+    border-radius: 0.8rem;
+    box-shadow: 0 5px 12px rgba(2, 6, 23, 0.28);
     overflow: hidden;
     position: relative;
     background-clip: padding-box;
@@ -409,7 +411,7 @@ onUnmounted(() => {
     content: '';
     position: absolute;
     inset: 0 auto 0 0;
-    width: 0.28rem;
+    width: 0.22rem;
     border-radius: 999px 0 0 999px;
     background: rgba(148, 163, 184, 0.55);
 }
@@ -431,7 +433,7 @@ onUnmounted(() => {
 .invoice-calendar.fc .fc-daygrid-event.invoice-event .fc-event-main,
 .invoice-calendar.fc .fc-daygrid-event.invoice-event .fc-event-main-frame,
 .invoice-calendar.fc .fc-daygrid-event.invoice-event .invoice-event-content {
-    padding: 0.5rem 0.8rem 0.5rem 0.5rem;
+    padding: 0.35rem 0.7rem 0.35rem 0.45rem;
     cursor: pointer;
 }
 
@@ -444,7 +446,14 @@ onUnmounted(() => {
 
 /* Event title line */
 .invoice-calendar.fc .invoice-event-title {
-    font-size: 0.78rem;
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    mask-image: linear-gradient(90deg, #000 78%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 78%, transparent 100%);
+    font-size: 0.74rem;
     font-weight: 600;
     line-height: 1.15;
     letter-spacing: 0.01em;
@@ -460,19 +469,19 @@ onUnmounted(() => {
 }
 
 .invoice-calendar--compact.fc .fc-daygrid-event.invoice-event {
-    margin: 0.2rem 0.2rem 0;
-    border-radius: 0.7rem;
-    box-shadow: 0 4px 10px rgba(2, 6, 23, 0.26);
+    margin: 0.15rem 0.18rem 0;
+    border-radius: 0.65rem;
+    box-shadow: 0 3px 8px rgba(2, 6, 23, 0.22);
 }
 
 .invoice-calendar--compact.fc .fc-daygrid-event.invoice-event::before {
-    width: 0.22rem;
+    width: 0.18rem;
 }
 
 .invoice-calendar--compact.fc .fc-daygrid-event.invoice-event .fc-event-main,
 .invoice-calendar--compact.fc .fc-daygrid-event.invoice-event .fc-event-main-frame,
 .invoice-calendar--compact.fc .fc-daygrid-event.invoice-event .invoice-event-content {
-    padding: 0.35rem 0.55rem 0.35rem 0.45rem;
+    padding: 0.28rem 0.45rem 0.28rem 0.38rem;
 }
 
 .invoice-calendar--compact.fc .invoice-event-content--compact {
@@ -480,11 +489,13 @@ onUnmounted(() => {
 }
 
 .invoice-calendar--compact.fc .invoice-event-title {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     line-height: 1.1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    mask-image: linear-gradient(90deg, #000 72%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 72%, transparent 100%);
 }
 
 .invoice-calendar--compact.fc .fc-daygrid-event .fc-event-time,
@@ -493,7 +504,17 @@ onUnmounted(() => {
 }
 
 .invoice-calendar--compact.fc .fc-daygrid-day-frame {
-    min-height: 4.4rem;
+    min-height: 3.4rem;
+}
+
+.invoice-calendar--compact.fc .fc-daygrid-day-number {
+    padding: 0.25rem 0.35rem;
+    font-size: 0.72rem;
+}
+
+.invoice-calendar--compact.fc .fc-col-header-cell-cushion {
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
 }
 
 /* Hide the default FullCalendar title node because we render our own layout */
