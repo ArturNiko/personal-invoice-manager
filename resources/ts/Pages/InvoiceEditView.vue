@@ -54,14 +54,14 @@ const createEmptyForm = (): InvoiceForm => ({
 const form = reactive<InvoiceForm>(createEmptyForm());
 
 const syncFormFromInvoice = (currentInvoice: InvoiceEvent) => {
-    form.title = currentInvoice.title
-    form.type = currentInvoice.type
-    form.status = currentInvoice.status
-    form.start_date = normalizeDateValue(currentInvoice.start_date) || new Date().toISOString().slice(0, 10)
-    form.end_date = normalizeDateValue(currentInvoice.end_date)
-    form.currency = currentInvoice.currency
-    form.recurrence = currentInvoice.recurrence ?? InvoiceRecurrence.MONTHLY
-    form.price = String(currentInvoice.price ?? '')
+    form.title = currentInvoice.title;
+    form.type = currentInvoice.type;
+    form.status = currentInvoice.status;
+    form.start_date = normalizeDateValue(currentInvoice.start_date) || new Date().toISOString().slice(0, 10);
+    form.end_date = normalizeDateValue(currentInvoice.end_date);
+    form.currency = currentInvoice.currency;
+    form.recurrence = currentInvoice.recurrence ?? InvoiceRecurrence.MONTHLY;
+    form.price = String(currentInvoice.price ?? '');
 };
 
 const loadInvoice = async () => {
@@ -181,92 +181,92 @@ onMounted(loadInvoice);
 </script>
 
 <template>
-    <div
-        v-if="loading"
-        class="rounded-[2rem] border border-white/10 bg-white/5 p-6 text-slate-300"
-    >
-        Loading invoice...
-    </div>
-
-    <div
-        v-else-if="loadError"
-        class="rounded-[2rem] border border-red-400/30 bg-red-500/10 p-6 text-red-100"
-    >
-        {{ loadError }}
-    </div>
-
-    <section v-else class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl">
-        <div class="border-b border-white/10 px-5 py-4 sm:px-6">
-            <h2 class="text-lg font-semibold text-white">Edit invoice</h2>
-            <p class="text-sm text-slate-400">Update invoice details, status, or delete the record.</p>
+    <section class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl">
+        <div
+            v-if="loading"
+            class="rounded-[2rem] border border-white/10 bg-white/5 p-6 text-slate-300"
+        >
+            Loading invoice...
         </div>
 
-        <form class="grid gap-6 p-4 sm:p-6 lg:grid-cols-[1.2fr_0.8fr]" @submit.prevent="submitForm">
-            <div class="space-y-6">
-                <div class="space-y-4">
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <InputText v-model="form.title" label="Title" required placeholder="Subscription" />
-                        <InputBalance v-model="form.price" v-model:currency="form.currency" :label="priceInputLabel" :currency-options="currencyOptions" placeholder="100.00" />
-                    </div>
-
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <InputSelect v-model="form.type" label="Type" :options="invoiceTypeOptions" />
-                        <InputSelect v-model="form.status" label="Status" :options="invoiceStatusOptions" />
-                    </div>
-
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <InputDate v-model="form.start_date" :label="dateInputLabel" required />
-                        <InputDate v-if="isRecurring" v-model="form.end_date" label="End date" />
-                    </div>
-
-                    <p v-if="isRecurringRangeInvalid" class="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
-                        Recurring end date must be on or after the start date.
-                    </p>
-
-                    <InputSelect v-model="form.recurrence" label="Recurrence" :options="invoiceRecurrenceOptions" :disabled="!isRecurring" />
-                </div>
+        <div
+            v-else-if="loadError"
+            class="rounded-[2rem] border border-red-400/30 bg-red-500/10 p-6 text-red-100"
+        >
+            {{ loadError }}
+        </div>
+        <div v-else>
+            <div class="border-b border-white/10 px-5 py-4 sm:px-6">
+                <h2 class="text-lg font-semibold text-white">Edit invoice</h2>
+                <p class="text-sm text-slate-400">Update invoice details, status, or delete the record.</p>
             </div>
 
-            <aside class="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-5">
-                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Preview</p>
-                <h3 class="mt-2 text-xl font-semibold text-white">Edit invoice</h3>
-                <p class="mt-2 text-sm leading-6 text-slate-400">The form adjusts automatically for one-time and recurring invoices.</p>
+            <form class="grid gap-6 p-4 sm:p-6 lg:grid-cols-[1.2fr_0.8fr]" @submit.prevent="submitForm">
+                <div class="space-y-6">
+                    <div class="space-y-4">
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <InputText v-model="form.title" label="Title" required placeholder="Subscription" />
+                            <InputBalance v-model="form.price" v-model:currency="form.currency" :label="priceInputLabel" :currency-options="currencyOptions" placeholder="100.00" />
+                        </div>
 
-                <div class="mt-6 space-y-3 text-sm text-slate-300">
-                    <div class="rounded-xl border border-white/10 bg-white/5 p-3">Type: {{ form.type }}</div>
-                    <div class="rounded-xl border border-white/10 bg-white/5 p-3">Status: {{ form.status }}</div>
-                    <div class="rounded-xl border border-white/10 bg-white/5 p-3">Currency: {{ form.currency }}</div>
-                    <div class="rounded-xl border border-white/10 bg-white/5 p-3">
-                        {{ recurringPreviewLabel }}
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <InputSelect v-model="form.type" label="Type" :options="invoiceTypeOptions" />
+                            <InputSelect v-model="form.status" label="Status" :options="invoiceStatusOptions" />
+                        </div>
+
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <InputDate v-model="form.start_date" :label="dateInputLabel" required />
+                            <InputDate v-if="isRecurring" v-model="form.end_date" label="End date" />
+                        </div>
+
+                        <p v-if="isRecurringRangeInvalid" class="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
+                            Recurring end date must be on or after the start date.
+                        </p>
+
+                        <InputSelect v-model="form.recurrence" label="Recurrence" :options="invoiceRecurrenceOptions" :disabled="!isRecurring" />
                     </div>
                 </div>
 
-                <p v-if="submitError" class="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
-                    {{ submitError }}
-                </p>
-                <p v-if="submitSuccess" class="mt-6 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
-                    {{ submitSuccess }}
-                </p>
+                <aside class="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-5">
+                    <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Preview</p>
+                    <h3 class="mt-2 text-xl font-semibold text-white">Edit invoice</h3>
+                    <p class="mt-2 text-sm leading-6 text-slate-400">The form adjusts automatically for one-time and recurring invoices.</p>
 
-                <Button type="submit" :disabled="isSubmitting || isRecurringRangeInvalid" variant="solid" block class="mt-6">
-                    {{ isSubmitting ? 'Saving...' : 'Save invoice' }}
-                </Button>
+                    <div class="mt-6 space-y-3 text-sm text-slate-300">
+                        <div class="rounded-xl border border-white/10 bg-white/5 p-3">Type: {{ form.type }}</div>
+                        <div class="rounded-xl border border-white/10 bg-white/5 p-3">Status: {{ form.status }}</div>
+                        <div class="rounded-xl border border-white/10 bg-white/5 p-3">Currency: {{ form.currency }}</div>
+                        <div class="rounded-xl border border-white/10 bg-white/5 p-3">
+                            {{ recurringPreviewLabel }}
+                        </div>
+                    </div>
 
-                <Button v-if="invoice?.id" type="button" :disabled="isDeleting" variant="danger" block class="mt-3" @click="deleteInvoice">
-                    {{ isDeleting ? 'Deleting...' : 'Delete invoice' }}
-                </Button>
-            </aside>
-        </form>
+                    <p v-if="submitError" class="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
+                        {{ submitError }}
+                    </p>
+                    <p v-if="submitSuccess" class="mt-6 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                        {{ submitSuccess }}
+                    </p>
+
+                    <Button type="submit" :disabled="isSubmitting || isRecurringRangeInvalid" variant="solid" block class="mt-6">
+                        {{ isSubmitting ? 'Saving...' : 'Save invoice' }}
+                    </Button>
+
+                    <Button v-if="invoice?.id" type="button" :disabled="isDeleting" variant="danger" block class="mt-3" @click="deleteInvoice">
+                        {{ isDeleting ? 'Deleting...' : 'Delete invoice' }}
+                    </Button>
+                </aside>
+            </form>
+            <ConfirmationDialog
+                :open="isDeleteDialogOpen"
+                :busy="isDeleting"
+                title="Delete invoice?"
+                message="This action cannot be undone."
+                confirm-label="Delete"
+                cancel-label="Keep it"
+                @close="closeDeleteDialog"
+                @confirm="confirmDeleteInvoice"
+            />
+        </div>
     </section>
-
-    <ConfirmationDialog
-        :open="isDeleteDialogOpen"
-        :busy="isDeleting"
-        title="Delete invoice?"
-        message="This action cannot be undone."
-        confirm-label="Delete"
-        cancel-label="Keep it"
-        @close="closeDeleteDialog"
-        @confirm="confirmDeleteInvoice"
-    />
 </template>

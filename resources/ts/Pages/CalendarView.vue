@@ -9,6 +9,7 @@ import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 
+import type { CalendarOptions } from '@fullcalendar/core';
 import type { EventClickArg, EventContentArg, EventInput } from '@fullcalendar/core';
 import { InvoiceRecurrence, InvoiceTypes, type InvoiceEvent } from '@/Types/Invoice';
 
@@ -176,6 +177,7 @@ const closeTooltip = () => {
 };
 
 const openTooltip = async (clickInfo: CalendarDateClickArg) => {
+    console.log('Opening tooltip for date:', clickInfo.dateStr);
     tooltipDate.value = clickInfo.dateStr;
 
     tooltip.value?.open(clickInfo.jsEvent, clickInfo.dayEl);
@@ -184,20 +186,24 @@ const openTooltip = async (clickInfo: CalendarDateClickArg) => {
 const createInvoiceForDay = () => {
     if (!tooltipDate.value) return;
 
-    closeTooltip();
-    router.push({ name: 'create', query: { date: tooltipDate.value } });
-};
-
-const handleEventClick = (clickEvent: EventClickArg) => {
     router.push({ 
-        name: 'invoice-edit', 
-        params: { 
-            id: clickEvent.event.extendedProps.invoiceId ?? clickEvent.event.id
+        name: 'create',
+        query: { 
+            date: tooltipDate.value 
         } 
     });
 };
+
+const handleEventClick = (clickEvent: EventClickArg) => {
+    router.push({
+        name: 'invoice-edit',
+        params: {
+            id: String(clickEvent.event.extendedProps.invoiceId ?? clickEvent.event.id),
+        },
+    });
+};
     
-const calendarOptions = computed(() => ({
+const calendarOptions = computed<CalendarOptions>(() => ({
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: calendarView.value,
     height: 'auto',
@@ -282,7 +288,7 @@ onUnmounted(() => {
         >
             <div class="space-y-2">
                 <p class="text-xs uppercase tracking-[0.24em] text-slate-400">Selected day</p>
-                <p class="text-sm font-semibold text-white">{{ tooltipDate }}</p>
+                <p class="text-xs text-slate-400">{{ tooltipDate }}</p>
 
                 <button
                     type="button"

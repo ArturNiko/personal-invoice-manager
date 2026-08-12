@@ -1,76 +1,74 @@
 <script setup lang="ts">
-import axios from "axios"
-import { computed, onMounted, ref, watch } from "vue"
-import { useRoute, RouterLink, RouterView } from "vue-router"
+import axios from 'axios'
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, RouterLink, RouterView } from 'vue-router';
 
-import Icon from "@/Components/Icon.vue"
-import Widget from "@/Components/Widget.vue"
-import Calculator from "@/Widgets/Calculator.vue"
+import Icon from '@/Components/Icon.vue';
+import Widget from '@/Components/Widget.vue';
+import Calculator from '@/Widgets/Calculator.vue';
 
-import type { InvoiceIndexResponse, InvoiceEvent } from "@/Types/Invoice"
+import type { InvoiceIndexResponse, InvoiceEvent } from '@/Types/Invoice';
 
 
-const invoices = ref<InvoiceEvent[]>([])
-const route = useRoute()
-const isCompactView = ref(false)
+const invoices = ref<InvoiceEvent[]>([]);
+const route = useRoute();
+const isCompactView = ref(false);
 
 const invoiceQuery = computed(() => ({
-    q: typeof route.query.q === "string" ? route.query.q : undefined,
-    type: typeof route.query.type === "string" ? route.query.type : undefined,
-    sort: typeof route.query.sort === "string" ? route.query.sort : undefined,
+    q: typeof route.query.q === 'string' ? route.query.q : undefined,
+    type: typeof route.query.type === 'string' ? route.query.type : undefined,
+    sort: typeof route.query.sort === 'string' ? route.query.sort : undefined,
     direction:
-        typeof route.query.direction === "string"
+        typeof route.query.direction === 'string'
             ? route.query.direction
             : undefined,
     status:
-        typeof route.query.status === "string" ? route.query.status : undefined,
+        typeof route.query.status === 'string' ? route.query.status : undefined,
     recurrence:
-        typeof route.query.recurrence === "string"
+        typeof route.query.recurrence === 'string'
             ? route.query.recurrence
             : undefined,
     per_page:
-        typeof route.query.per_page === "string"
+        typeof route.query.per_page === 'string'
             ? route.query.per_page
             : undefined,
-}))
+}));
 
 const fetchInvoices = async () => {
     try {
-        const response = await axios.get<InvoiceIndexResponse>("/invoices", {
+        const response = await axios.get<InvoiceIndexResponse>('/invoices', {
             params: invoiceQuery.value,
-        })
+        });
 
         if (response.status !== 200) {
-            console.error("Failed to fetch invoices:", response.statusText)
-            return
+            console.error('Failed to fetch invoices:', response.statusText);
+            return;
         }
 
-        invoices.value = response.data.data
+        invoices.value = response.data.data;
     } catch (error) {
-        console.error("Error fetching invoices:", error)
+        console.error('Error fetching invoices:', error);
     }
-}
+};
 
 const updateCalendarView = () => {
-    isCompactView.value = window.innerWidth < 768
-}
+    isCompactView.value = window.innerWidth < 768;
+};
 
-const isCreatePage = computed(() => route.path === '/create')
+const isCreatePage = computed(() => route.path === '/create');
 
 onMounted(async () => {
-    await fetchInvoices()
-    updateCalendarView()
-    window.addEventListener('resize', updateCalendarView)
+    await fetchInvoices();
+    updateCalendarView();
+    window.addEventListener('resize', updateCalendarView);
 })
 
 watch(
     () => route.fullPath,
-    async () => {
-        await fetchInvoices()
-    },
-)
+    async () => await fetchInvoices(),
+);
 
-const isCurrentRoute = (path: string) => route.path === path
+const isCurrentRoute = (path: string) => route.path === path;
 </script>
 
 <template>
