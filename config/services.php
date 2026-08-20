@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'nanonets' => [
+        'api_key' => env('NANONETS_API_KEY'),
+        'model_id' => env('NANONETS_MODEL_ID'),
+        'base_url' => env('NANONETS_BASE_URL', 'https://app.nanonets.com/api/v2'),
+        'validate_connection_on_boot' => env('NANONETS_VALIDATE_CONNECTION_ON_BOOT', false),
+        'connection_check_cache_seconds' => (int) env('NANONETS_CONNECTION_CHECK_CACHE_SECONDS', 300),
+    ],
+
 ];
