@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-use App\Enums\InvoiceImportState;
+use App\Enums\AgentTaskState;
 
 
 return new class extends Migration
@@ -17,7 +17,7 @@ return new class extends Migration
         Schema::create('invoice_imports', function (Blueprint $table) {
             $table->id();
             $table->string('file_path');
-            $table->enum('status', InvoiceImportState::getAll())->default(InvoiceImportState::PENDING->value);
+            $table->enum('status', AgentTaskState::getAll())->default(AgentTaskState::PENDING->value);
             $table->text('error_message')->nullable();
             $table->timestamps();
         });

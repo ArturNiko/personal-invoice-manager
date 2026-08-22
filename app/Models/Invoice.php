@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Enums\AgentTaskState;
+
 
 /**
  * Invoice model
@@ -37,4 +39,10 @@ class Invoice extends Model
         'end_date' => 'date',
         'price' => 'float',
     ];
+
+
+    public function scopeVisible($query)
+    {
+        return $query->where('status', '!=', AgentTaskState::PROCESSING->value);
+    }
 }

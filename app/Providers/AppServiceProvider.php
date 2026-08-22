@@ -6,6 +6,7 @@ use InvalidArgumentException;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 use App\Enums\InvoiceCurrency;
 
@@ -45,28 +46,23 @@ class AppServiceProvider extends ServiceProvider
 
     private function validateNanonetsConfiguration(): void
     {
-        $apiKey = trim((string) config('services.nanonets.api_key', ''));
-        $modelId = trim((string) config('services.nanonets.model_id', ''));
-        $baseUrl = trim((string) config('services.nanonets.base_url', ''));
+        $apiKey = config('services.nanonets.api_key', '');
+        $agentId = config('services.nanonets.agent_id', '');
+        $agentUrl = config('services.nanonets.agent_url', '');
 
         // Allow app boot without Nanonets when nothing is configured.
-        if ($apiKey === '' && $modelId === '') {
-            return;
-        }
-
-        if ($apiKey === '' || $modelId === '') {
+        if ($apiKey === '' || $agentId === '') {
             throw new InvalidArgumentException(
-                'Nanonets is partially configured. Set both NANONETS_API_KEY and NANONETS_MODEL_ID, or leave both empty.'
+                'Nanonets is partially configured. Set both NANONETS_API_KEY and NANONETS_AGENT_ID, or leave both empty.'
+            );
+        }
+        if ($agentUrl === '') {
+            throw new InvalidArgumentException(
+                'Nanonets agent URL is not configured. Set NANONETS_AGENT_URL.'
             );
         }
 
-        if ($baseUrl === '' || !filter_var($baseUrl, FILTER_VALIDATE_URL) || !str_starts_with($baseUrl, 'https://')) {
-            throw new InvalidArgumentException(
-                sprintf('Invalid NANONETS_BASE_URL "%s". Expected a valid HTTPS URL.', $baseUrl)
-            );
-        }
-
-        $this->validateNanonetsConnection($apiKey, $baseUrl);
+        $this->validateNanonetsConnection($apiKey, $agentUrl);
     }
 
     private function validateNanonetsConnection(string $apiKey, string $baseUrl): void
@@ -78,17 +74,15 @@ class AppServiceProvider extends ServiceProvider
 
         if ($cacheSeconds > 0 && Cache::has($cacheKey)) return;
 
-        $healthUrl = $this->buildNanonetsHealthUrl($baseUrl);
-
         try {
-            $response = Http::withBasicAuth($apiKey, '')
+            $response = Http::withToken($apiKey)
                 ->acceptJson()
                 ->timeout(5)
-                ->get($healthUrl);
+                ->get($baseUrl);
         } 
         catch (\Throwable $throwable) {
             throw new InvalidArgumentException(
-                sprintf('Unable to connect to Nanonets at "%s": %s', $healthUrl, $throwable->getMessage())
+                sprintf('Unable to connect to Nanonets at "%s": %s', $baseUrl, $throwable->getMessage())
             );
         }
 
@@ -96,7 +90,7 @@ class AppServiceProvider extends ServiceProvider
             throw new InvalidArgumentException(
                 sprintf(
                     'Nanonets connection check failed for "%s" with HTTP %d.',
-                    $healthUrl,
+                    $baseUrl,
                     $response->status(),
                 )
             );
@@ -105,16 +99,10 @@ class AppServiceProvider extends ServiceProvider
         if ($cacheSeconds > 0) {
             Cache::put($cacheKey, true, now()->addSeconds($cacheSeconds));
         }
-    }
 
-    private function buildNanonetsHealthUrl(string $baseUrl): string
-    {
-        $trimmedBaseUrl = rtrim($baseUrl, '/');
-
-        if (str_ends_with($trimmedBaseUrl, '/api/v2')) {
-            return str_replace('/api/v2', '/v2/', $trimmedBaseUrl);
-        }
-
-        return $trimmedBaseUrl . '/';
+        Log::info('Nanonets connection validated successfully.', [
+            'base_url' => $baseUrl,
+            'cache_seconds' => $cacheSeconds,
+        ]);
     }
 }

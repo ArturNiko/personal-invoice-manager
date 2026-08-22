@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum InvoiceImportState: string
+enum AgentTaskState: string
 {
     case PENDING = 'pending';
     case PROCESSING = 'processing';

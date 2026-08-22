@@ -6,7 +6,7 @@ use App\Enums\InvoiceImportState;
 use App\Http\Requests\InvoiceImportRequest;
 use App\Jobs\ProcessInvoice;
 use App\Models\Invoice;
-use App\Models\InvoiceImport;
+use App\Models\AgentTask;
 use App\Http\Requests\InvoiceIndexRequest;
 use App\Http\Requests\InvoicesRequest;
 
@@ -83,15 +83,25 @@ class InvoiceController extends Controller
 
         $path = $file->store('invoice-uploads');
 
-        $invoiceImport = InvoiceImport::create([
+        $invoice = Invoice::create([
+            'title' => $file->getClientOriginalName(),
+            'status' => InvoiceStatus::PROCESSING->value,
             'file_path' => $path,
-            'status' => InvoiceImportState::PENDING->value,
         ]);
 
-        ProcessInvoice::dispatch($invoiceImport->id);
+        $invoiceImport = AgentTask::create([
+            'status' => InvoiceImportState::PENDING->value,
+            'file_path' => $path,
+        ]);
+
+        ProcessInvoice::dispatchSync($invoiceImport->id);
+
+        $invoiceImport->refresh();
 
         return response()->json([
-            'message' => 'Invoice is being processed'
+            'message' => 'Invoice processed successfully.',
+            'invoice_import_id' => $invoiceImport->id,
+            'status' => $invoiceImport->status,
         ]);
     }
 }

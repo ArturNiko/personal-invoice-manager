@@ -8,9 +8,11 @@ enum InvoiceStatus: string
     case PENDING = 'pending';
     case PAID = 'paid';
     case OVERDUE = 'overdue';
+    case PROCESSING = 'processing';
 
     public static function getAll(): array {
         return [
+            self::PROCESSING->value,
             self::PENDING->value,
             self::PAID->value,
             self::OVERDUE->value,
@@ -26,6 +28,7 @@ enum InvoiceStatus: string
             'pending' => self::PENDING,
             'paid' => self::PAID,
             'overdue' => self::OVERDUE,
+            'processing' => self::PROCESSING,
             default => null,
         };
     }

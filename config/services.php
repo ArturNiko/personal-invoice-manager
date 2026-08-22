@@ -37,8 +37,17 @@ return [
 
     'nanonets' => [
         'api_key' => env('NANONETS_API_KEY'),
-        'model_id' => env('NANONETS_MODEL_ID'),
-        'base_url' => env('NANONETS_BASE_URL', 'https://app.nanonets.com/api/v2'),
+        'agent_id' => env('NANONETS_AGENT_ID'),
+        
+        'base_url' => env('NANONETS_BASE_URL'),
+        'agent_url' => env('NANONETS_AGENT_URL'),
+        'agent_run_url' => env('NANONETS_AGENT_RUN_URL'),
+
+        'task_list_url' => env('NANONETS_TASK_LIST_URL'),
+        'task_status_url' => env('NANONETS_TASK_STATUS_URL'),
+        'task_result_url' => env('NANONETS_TASK_RESULT_URL'),
+        'task_summary_url' => env('NANONETS_TASK_SUMMARY_URL'),
+        
         'validate_connection_on_boot' => env('NANONETS_VALIDATE_CONNECTION_ON_BOOT', false),
         'connection_check_cache_seconds' => (int) env('NANONETS_CONNECTION_CHECK_CACHE_SECONDS', 300),
     ],
