@@ -13,6 +13,7 @@ class NanonetsClientTest extends TestCase
         config()->set('services.nanonets.api_key', 'test-key');
         config()->set('services.nanonets.agent_id', 'agent-123');
         config()->set('services.nanonets.agent_base_url', 'https://agents.nanonets.com/api');
+        config()->set('services.nanonets.agent_run_url', 'https://agents.nanonets.com/api/v1/agents/agent-123/run');
         config()->set('services.nanonets.agent_result_url', 'https://agents.nanonets.com/api/v1/tasks/{task_id}');
 
         Http::fake([
@@ -42,7 +43,7 @@ class NanonetsClientTest extends TestCase
         file_put_contents($path, 'dummy pdf');
 
         try {
-            $client = new NanonetsClient();
+            $client = new NanonetsClient;
             $response = $client->predictStoredFile($path, 'invoice_import:1');
 
             $this->assertSame('Dummy Vendor GmbH', $response['title']);
@@ -66,10 +67,9 @@ class NanonetsClientTest extends TestCase
 
     public function test_it_maps_structured_credit_card_statement_payloads(): void
     {
-        $client = new NanonetsClient();
+        $client = new NanonetsClient;
 
         $attributes = $client->buildInvoiceAttributes([
-            'title' => 'Dummy Card Statement',
             'start_date' => '2026-08-20',
             'end_date' => null,
             'price' => 142.89,

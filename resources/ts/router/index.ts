@@ -1,11 +1,25 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+const guestOnlyRoutes = ['/login', '/register']
+
+const isGuestRoute = (path: string) => guestOnlyRoutes.includes(path)
+
 export const router = createRouter({
     history: createWebHistory(),
     routes: [
         {
             path: '/',
-            redirect: '/calendar',
+            redirect: '/login',
+        },
+        {
+            path: '/login',
+            name: 'login',
+            component: () => import('@/Pages/Auth/LoginPage.vue'),
+        },
+        {
+            path: '/register',
+            name: 'register',
+            component: () => import('@/Pages/Auth/RegisterPage.vue'),
         },
         {
             path: '/create',
@@ -27,5 +41,26 @@ export const router = createRouter({
             name: 'list',
             component: () => import('@/Pages/InvoiceListView.vue'),
         },
+        {
+            path: '/profile',
+            name: 'profile',
+            component: () => import('@/Pages/ProfilePage.vue'),
+        },
     ],
+})
+
+router.beforeEach((to, _, next) => {
+    const isLoggedIn = document.body.dataset.authenticated === '1'
+
+    if (isLoggedIn && isGuestRoute(to.path)) {
+        next('/calendar')
+        return
+    }
+
+    if (!isLoggedIn && !isGuestRoute(to.path)) {
+        next('/login')
+        return
+    }
+
+    next()
 })

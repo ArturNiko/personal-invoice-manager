@@ -474,25 +474,18 @@ class NanonetsClient
 
     protected function normalizeAmount(mixed $value): ?float
     {
-        if ($value === null) {
-            return null;
-        }
+        if ($value === null) return null;
 
-        if (is_int($value) || is_float($value)) {
-            return (float) $value;
-        }
+
+        if (is_int($value) || is_float($value)) return (float) $value;
 
         $raw = trim((string) $value);
 
-        if ($raw === '') {
-            return null;
-        }
+        if ($raw === '') return null;
 
         $raw = preg_replace('/[^0-9,.-]/', '', $raw) ?? '';
 
-        if ($raw === '') {
-            return null;
-        }
+        if ($raw === '') return null;
 
         if (str_contains($raw, ',') && str_contains($raw, '.')) {
             $raw = str_replace(',', '', $raw);

@@ -9,10 +9,12 @@ import Calculator from '@/Widgets/Calculator.vue';
 
 import type { InvoiceIndexResponse, InvoiceEvent } from '@/Types/Invoice';
 
-
 const invoices = ref<InvoiceEvent[]>([]);
 const route = useRoute();
 const isCompactView = ref(false);
+const isAuthRoute = computed(() => ['/login', '/register'].includes(route.path));
+const isAppLayout = computed(() => !isAuthRoute.value);
+const showHeader = computed(() => isAppLayout.value);
 
 const invoiceQuery = computed(() => ({
     q: typeof route.query.q === 'string' ? route.query.q : undefined,
@@ -42,12 +44,18 @@ const fetchInvoices = async () => {
 
         if (response.status !== 200) {
             console.error('Failed to fetch invoices:', response.statusText);
+            invoices.value = [];
             return;
         }
 
-        invoices.value = response.data.data;
+        invoices.value = Array.isArray(response.data?.data) ? response.data.data : [];
     } catch (error) {
         console.error('Error fetching invoices:', error);
+        invoices.value = [];
+
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+            window.location.href = '/login';
+        }
     }
 };
 
@@ -72,9 +80,7 @@ const isCurrentRoute = (path: string) => route.path === path;
 </script>
 
 <template>
-    <div
-        class="relative isolate min-h-dvh overflow-hidden bg-slate-950 text-slate-100"
-    >
+    <div v-if="isAppLayout" class="relative isolate min-h-dvh overflow-hidden bg-slate-950 text-slate-100">
         <div
             class="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.26),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,1)_0%,_rgba(2,6,23,1)_100%)]"
         ></div>
@@ -83,73 +89,94 @@ const isCurrentRoute = (path: string) => route.path === path;
             class="relative mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-6 px-2 py-5 sm:px-4 md:px-6 lg:px-8 lg:py-8"
         >
             <header
-                class="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between"
+                class="rounded-[2rem] border border-white/10 bg-slate-900/60 p-3 shadow-[0_20px_50px_rgba(15,23,42,0.6)] backdrop-blur-xl"
             >
-                <div class="space-y-2">
-                    <h1
-                        class="text-2xl font-semibold uppercase tracking-[0.3em] text-cyan-300/80"
-                    >
-                        Personal Invoice Manager
-                    </h1>
-                    <p
-                        class="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base"
-                    >
-                        Never lose track of an invoice again.
-                    </p>
-                </div>
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="flex items-center gap-3 px-2 py-1">
+                        <div class="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-400/10 text-sm font-bold text-cyan-200">
+                            PIM
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-semibold uppercase tracking-[0.35em] text-cyan-300/80">
+                                Personal
+                            </p>
+                            <h1 class="text-lg font-semibold tracking-tight text-white">
+                                Invoice Manager
+                            </h1>
+                        </div>
+                    </div>
 
-                <div class="flex flex-row flex-nowrap items-center gap-2 sm:gap-3">
-                    <div
-                        class="inline-flex shrink-0 rounded-2xl border border-white/10 bg-slate-900/70 p-1 shadow-lg shadow-slate-950/30"
-                    >
+                    <nav class="flex flex-wrap gap-2 md:gap-3">
                         <RouterLink
                             to="/calendar"
-                            class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl px-0 text-sm font-medium transition sm:w-auto sm:px-4"
+                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all duration-200 md:min-w-[140px]"
                             :class="
                                 isCurrentRoute('/calendar')
-                                    ? 'bg-white text-slate-950 shadow'
-                                    : 'text-slate-300 hover:text-white'
+                                    ? 'border-white/10 bg-white text-slate-950 shadow-lg shadow-slate-950/30'
+                                    : 'border-white/10 bg-slate-900/80 text-slate-100 hover:border-white/20 hover:bg-slate-800/80'
                             "
                         >
                             <Icon
                                 icon="calendar"
                                 :theme="isCurrentRoute('/calendar') ? 'light' : 'dark'"
+                                class="h-5 w-5"
                             />
-                            <span class="sr-only sm:not-sr-only sm:ml-2">Calendar</span>
+                            <span>Calendar</span>
                         </RouterLink>
+
                         <RouterLink
                             to="/list"
-                            class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl px-0 text-sm font-medium transition sm:w-auto sm:px-4"
+                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all duration-200 md:min-w-[140px]"
                             :class="
                                 isCurrentRoute('/list')
-                                    ? 'bg-white text-slate-950 shadow'
-                                    : 'text-slate-300 hover:text-white'
+                                    ? 'border-white/10 bg-white text-slate-950 shadow-lg shadow-slate-950/30'
+                                    : 'border-white/10 bg-slate-900/80 text-slate-100 hover:border-white/20 hover:bg-slate-800/80'
                             "
                         >
                             <Icon
                                 icon="list"
                                 :theme="isCurrentRoute('/list') ? 'light' : 'dark'"
+                                class="h-5 w-5"
                             />
-                            <span class="sr-only sm:not-sr-only sm:ml-2">List</span>
+                            <span>List</span>
                         </RouterLink>
-                    </div>
 
-                    <RouterLink
-                        v-if="!isCreatePage"
-                        to="/create"
-                        class="inline-flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-0 text-sm font-semibold text-cyan-200 shadow-lg shadow-slate-950/25 transition hover:-translate-y-0.5 hover:bg-cyan-400/20 hover:text-white sm:w-auto sm:px-4"
-                    >
-                        <Icon
-                            icon="add"
-                            :theme="isCurrentRoute('/create') ? 'light' : 'dark'"
-                        />
-                        <span class="sr-only sm:not-sr-only">Create</span>
-                    </RouterLink>
+                        <RouterLink
+                            v-if="!isCreatePage"
+                            to="/create"
+                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-200 shadow-lg shadow-cyan-950/30 transition-all duration-200 hover:bg-cyan-500/20 md:min-w-[140px]"
+                            :class="isCurrentRoute('/create') ? 'ring-2 ring-cyan-300/70' : ''"
+                        >
+                            <Icon
+                                icon="add"
+                                :theme="isCurrentRoute('/create') ? 'light' : 'dark'"
+                                class="h-5 w-5"
+                            />
+                            <span>Create</span>
+                        </RouterLink>
+
+                        <RouterLink
+                            to="/profile"
+                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all duration-200 md:min-w-[140px]"
+                            :class="
+                                isCurrentRoute('/profile')
+                                    ? 'border-white/10 bg-white text-slate-950 shadow-lg shadow-slate-950/30'
+                                    : 'border-white/10 bg-slate-900/80 text-slate-100 hover:border-white/20 hover:bg-slate-800/80'
+                            "
+                        >
+                            <Icon
+                                icon="user"
+                                :theme="isCurrentRoute('/profile') ? 'light' : 'dark'"
+                                class="h-5 w-5"
+                            />
+                            <span>Profile</span>
+                        </RouterLink>
+                    </nav>
                 </div>
             </header>
 
             <section 
-                v-show="!isCompactView"
+                v-show="!isCompactView && route.path !== '/profile'"
                 class="grid gap-4 sm:grid-cols-2" 
             >
                 <article
@@ -183,7 +210,7 @@ const isCurrentRoute = (path: string) => route.path === path;
                         Invoices
                     </p>
                     <p class="mt-2 text-2xl font-semibold text-white">
-                        {{ invoices.length }}
+                        {{ (invoices ?? []).length }}
                     </p>
                     <p class="mt-1 text-sm text-slate-400">
                         Track upcoming due dates and keep all your invoices
@@ -208,7 +235,16 @@ const isCurrentRoute = (path: string) => route.path === path;
             </main>
         </div>
     </div>
-    <Widget icon="calculator">
+
+    <div v-else class="min-h-dvh bg-slate-950 text-slate-100">
+        <RouterView v-slot="{ Component }">
+            <Transition name="fade" mode="out-in">
+                <component :is="Component" :key="route.path" />
+            </Transition>
+        </RouterView>
+    </div>
+
+    <Widget v-if="!isAuthRoute" icon="calculator">
         <Calculator />
     </Widget>
 </template>

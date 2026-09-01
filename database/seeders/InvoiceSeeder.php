@@ -9,7 +9,7 @@ use App\Enums\InvoiceType;
 use App\Models\Invoice;
 use Illuminate\Database\Seeder;
 
-class InvoiceTestSeeder extends Seeder
+class InvoiceSeeder extends Seeder
 {
     /**
      * Seed invoices with a small, realistic test set for the index page.
@@ -18,6 +18,7 @@ class InvoiceTestSeeder extends Seeder
     {
         $invoices = [
             [
+                'user_id' => 2,
                 'title' => 'Website hosting',
                 'status' => InvoiceStatus::PENDING->value,
                 'start_date' => now()->addDays(2)->toDateString(),
@@ -28,6 +29,7 @@ class InvoiceTestSeeder extends Seeder
                 'recurrence' => InvoiceReccuranceType::MONTHLY->value,
             ],
             [
+                'user_id' => 1,
                 'title' => 'Logo redesign',
                 'status' => InvoiceStatus::PAID->value,
                 'start_date' => now()->subDays(12)->toDateString(),
@@ -38,6 +40,7 @@ class InvoiceTestSeeder extends Seeder
                 'recurrence' => null,
             ],
             [
+                'user_id' => 1,
                 'title' => 'Cloud storage',
                 'status' => InvoiceStatus::PENDING->value,
                 'start_date' => now()->addDays(5)->toDateString(),
@@ -48,6 +51,7 @@ class InvoiceTestSeeder extends Seeder
                 'recurrence' => InvoiceReccuranceType::WEEKLY->value,
             ],
             [
+                'user_id' => 1,
                 'title' => 'Consulting sprint',
                 'status' => InvoiceStatus::OVERDUE->value,
                 'start_date' => now()->subDays(4)->toDateString(),
@@ -58,6 +62,7 @@ class InvoiceTestSeeder extends Seeder
                 'recurrence' => null,
             ],
             [
+                'user_id' => 1,
                 'title' => 'Analytics subscription',
                 'status' => InvoiceStatus::PENDING->value,
                 'start_date' => now()->addDays(8)->toDateString(),
@@ -68,6 +73,7 @@ class InvoiceTestSeeder extends Seeder
                 'recurrence' => InvoiceReccuranceType::YEARLY->value,
             ],
             [
+                'user_id' => 1,
                 'title' => 'One-off feature fix',
                 'status' => InvoiceStatus::PAID->value,
                 'start_date' => now()->subDays(18)->toDateString(),
@@ -78,6 +84,7 @@ class InvoiceTestSeeder extends Seeder
                 'recurrence' => null,
             ],
             [
+                'user_id' => 1,
                 'title' => 'Design system support',
                 'status' => InvoiceStatus::PENDING->value,
                 'start_date' => now()->addDays(12)->toDateString(),
@@ -88,6 +95,7 @@ class InvoiceTestSeeder extends Seeder
                 'recurrence' => InvoiceReccuranceType::WEEKLY->value,
             ],
             [
+                'user_id' => 1,
                 'title' => 'Quarterly reporting',
                 'status' => InvoiceStatus::OVERDUE->value,
                 'start_date' => now()->subDays(1)->toDateString(),
