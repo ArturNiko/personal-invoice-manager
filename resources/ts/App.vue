@@ -12,9 +12,13 @@ import type { InvoiceIndexResponse, InvoiceEvent } from '@/Types/Invoice';
 const invoices = ref<InvoiceEvent[]>([]);
 const route = useRoute();
 const isCompactView = ref(false);
-const isAuthRoute = computed(() => ['/login', '/register'].includes(route.path));
+
+const isAuthRoute = computed(() =>
+    ['/login', '/register', '/forgot-password', '/verify-email'].includes(route.path)
+    || route.path.startsWith('/reset-password'),
+);
+
 const isAppLayout = computed(() => !isAuthRoute.value);
-const showHeader = computed(() => isAppLayout.value);
 
 const invoiceQuery = computed(() => ({
     q: typeof route.query.q === 'string' ? route.query.q : undefined,
@@ -76,7 +80,7 @@ watch(
     async () => await fetchInvoices(),
 );
 
-const isCurrentRoute = (path: string) => route.path === path;
+const isCurrentRoute = (name: string) => route.name === name;
 </script>
 
 <template>
@@ -109,78 +113,78 @@ const isCurrentRoute = (path: string) => route.path === path;
                     <nav class="flex flex-wrap gap-2 md:gap-3">
                         <RouterLink
                             to="/calendar"
-                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all duration-200 md:min-w-[140px]"
+                            aria-label="Calendar"
+                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm font-semibold transition-all duration-200 sm:px-4 sm:min-w-[140px]"
                             :class="
-                                isCurrentRoute('/calendar')
+                                isCurrentRoute('calendar')
                                     ? 'border-white/10 bg-white text-slate-950 shadow-lg shadow-slate-950/30'
                                     : 'border-white/10 bg-slate-900/80 text-slate-100 hover:border-white/20 hover:bg-slate-800/80'
                             "
                         >
                             <Icon
                                 icon="calendar"
-                                :theme="isCurrentRoute('/calendar') ? 'light' : 'dark'"
-                                class="h-5 w-5"
+                                :theme="isCurrentRoute('calendar') ? 'light' : 'dark'"
+                                class="h-5 w-5 shrink-0"
                             />
-                            <span>Calendar</span>
+                            <span class="hidden sm:inline">Calendar</span>
                         </RouterLink>
 
                         <RouterLink
                             to="/list"
-                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all duration-200 md:min-w-[140px]"
+                            aria-label="List"
+                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm font-semibold transition-all duration-200 sm:px-4 sm:min-w-[140px]"
                             :class="
-                                isCurrentRoute('/list')
+                                isCurrentRoute('list')
                                     ? 'border-white/10 bg-white text-slate-950 shadow-lg shadow-slate-950/30'
                                     : 'border-white/10 bg-slate-900/80 text-slate-100 hover:border-white/20 hover:bg-slate-800/80'
                             "
                         >
                             <Icon
                                 icon="list"
-                                :theme="isCurrentRoute('/list') ? 'light' : 'dark'"
-                                class="h-5 w-5"
+                                :theme="isCurrentRoute('list') ? 'light' : 'dark'"
+                                class="h-5 w-5 shrink-0"
                             />
-                            <span>List</span>
+                            <span class="hidden sm:inline">List</span>
                         </RouterLink>
 
                         <RouterLink
                             v-if="!isCreatePage"
-                            to="/create"
-                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-200 shadow-lg shadow-cyan-950/30 transition-all duration-200 hover:bg-cyan-500/20 md:min-w-[140px]"
-                            :class="isCurrentRoute('/create') ? 'ring-2 ring-cyan-300/70' : ''"
+                            to="/invoice/create"
+                            aria-label="Create invoice"
+                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-3 py-3 text-sm font-semibold text-cyan-200 shadow-lg shadow-cyan-950/30 transition-all duration-200 hover:bg-cyan-500/20 sm:px-4 sm:min-w-[140px]"
+                            :class="isCurrentRoute('invoice-create') ? 'ring-2 ring-cyan-300/70 bg-cyan-400/15' : ''"
                         >
                             <Icon
                                 icon="add"
-                                :theme="isCurrentRoute('/create') ? 'light' : 'dark'"
-                                class="h-5 w-5"
+                                :theme="'dark'"
+                                class="h-5 w-5 shrink-0"
                             />
-                            <span>Create</span>
+                            <span class="hidden sm:inline">Create</span>
                         </RouterLink>
 
                         <RouterLink
                             to="/profile"
-                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all duration-200 md:min-w-[140px]"
-                            :class="
-                                isCurrentRoute('/profile')
-                                    ? 'border-white/10 bg-white text-slate-950 shadow-lg shadow-slate-950/30'
-                                    : 'border-white/10 bg-slate-900/80 text-slate-100 hover:border-white/20 hover:bg-slate-800/80'
-                            "
+                            aria-label="Profile"
+                            class="group inline-flex items-center justify-center gap-2 rounded-2xl border border-violet-400/30 bg-violet-500/10 px-3 py-3 text-sm font-semibold text-violet-100 shadow-lg shadow-violet-950/30 transition-all duration-200 hover:bg-violet-500/20 sm:px-4 sm:min-w-[140px]"
+                            :class="isCurrentRoute('profile') ? 'ring-1 ring-violet-300/60' : ''"
                         >
                             <Icon
                                 icon="user"
-                                :theme="isCurrentRoute('/profile') ? 'light' : 'dark'"
-                                class="h-5 w-5"
+                                :theme="'dark'"
+                                class="h-5 w-5 shrink-0"
                             />
-                            <span>Profile</span>
+                            <span class="hidden sm:inline">Profile</span>
                         </RouterLink>
                     </nav>
                 </div>
             </header>
 
             <section 
-                v-show="!isCompactView && route.path !== '/profile'"
+                v-show="!isCompactView && !isCurrentRoute('profile')"
                 class="grid gap-4 sm:grid-cols-2" 
             >
                 <article
-                    v-if="route.path === '/calendar' || route.path === '/list'"
+                    v-if="isCurrentRoute('calendar') || isCurrentRoute('list')"
                     class="rounded-2xl border border-white/10 bg-slate-900/75 p-4 backdrop-blur"
                 >
                     <p
@@ -190,7 +194,7 @@ const isCurrentRoute = (path: string) => route.path === path;
                     </p>
                     <p class="mt-2 text-2xl font-semibold text-white">
                         {{
-                            route.path === "/list"
+                            isCurrentRoute('list')
                                 ? "List View"
                                 : "Calendar View"
                         }}

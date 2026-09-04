@@ -261,7 +261,7 @@ onMounted(loadInvoice);
                 :open="isDeleteDialogOpen"
                 :busy="isDeleting"
                 title="Delete invoice?"
-                message="This action cannot be undone."
+                message="This action cannot be undone. The invoice will be permanently removed and cannot be recovered."
                 confirm-label="Delete"
                 cancel-label="Keep it"
                 @close="closeDeleteDialog"

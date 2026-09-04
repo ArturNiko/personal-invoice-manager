@@ -29,7 +29,7 @@ const csrf = document.head.querySelector('meta[name="csrf-token"]')?.getAttribut
 
 async function fetchProfile() {
     try {
-        const res = await fetch('/profile', { headers: { Accept: 'application/json' } })
+        const res = await fetch('/profile')
         if (res.status === 401) {
             router.push('/login')
             return
@@ -50,7 +50,7 @@ async function updateProfile() {
     try {
         const res = await fetch('/profile', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
             body: JSON.stringify({ name: name.value, email: email.value }),
         })
         if (res.status === 422) {
@@ -76,7 +76,7 @@ async function updatePassword() {
     try {
         const res = await fetch('/profile/password', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
             body: JSON.stringify({
                 current_password: currentPassword.value,
                 password: newPassword.value,
@@ -107,7 +107,7 @@ async function deleteAccount() {
     try {
         const res = await fetch('/profile', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
             body: JSON.stringify({ password: deletePassword.value }),
         })
         if (res.status === 422) {
@@ -127,10 +127,14 @@ async function deleteAccount() {
 
 async function logout() {
     try {
-        await fetch('/logout', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' } })
-    } catch { /* ok */ }
-    document.body.dataset.authenticated = '0'
-    router.push('/login')
+        await fetch('/logout', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf } })
+    } 
+    catch {
+        // ignore
+    }
+
+    document.body.dataset.authenticated = '0';
+    router.push('/login');
 }
 
 onMounted(fetchProfile)
@@ -141,105 +145,111 @@ onMounted(fetchProfile)
         <h2 class="text-xl font-semibold text-white">Profile Settings</h2>
 
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-            <h3 class="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300/80">Account Information</h3>
+            <div class="space-y-8">
+                <section class="space-y-4">
+                    <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300/80">Account Information</h3>
 
-            <div v-if="profileSuccess" class="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{{ profileSuccess }}</div>
+                    <div v-if="profileSuccess" class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{{ profileSuccess }}</div>
 
-            <form @submit.prevent="updateProfile" class="space-y-4">
-                <div>
-                    <label for="name" class="mb-1.5 block text-sm font-medium text-slate-200">Name</label>
-                    <input
-                        id="name"
-                        v-model="name"
-                        type="text"
-                        required
-                        class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                        :class="profileErrors.name ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40' : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'"
-                    />
-                    <p v-if="profileErrors.name" class="mt-1.5 text-xs text-red-400">{{ profileErrors.name[0] }}</p>
-                </div>
+                    <form @submit.prevent="updateProfile" class="space-y-4">
+                        <div>
+                            <label for="name" class="mb-1.5 block text-sm font-medium text-slate-200">Name</label>
+                            <input
+                                id="name"
+                                v-model="name"
+                                type="text"
+                                required
+                                class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
+                                :class="profileErrors.name ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40' : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'"
+                            />
+                            <p v-if="profileErrors.name" class="mt-1.5 text-xs text-red-400">{{ profileErrors.name[0] }}</p>
+                        </div>
 
-                <div>
-                    <label for="profile-email" class="mb-1.5 block text-sm font-medium text-slate-200">Email</label>
-                    <input
-                        id="profile-email"
-                        v-model="email"
-                        type="email"
-                        required
-                        class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                        :class="profileErrors.email ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40' : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'"
-                    />
-                    <p v-if="profileErrors.email" class="mt-1.5 text-xs text-red-400">{{ profileErrors.email[0] }}</p>
-                </div>
+                        <div>
+                            <label for="profile-email" class="mb-1.5 block text-sm font-medium text-slate-200">Email</label>
+                            <input
+                                id="profile-email"
+                                v-model="email"
+                                type="email"
+                                required
+                                class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
+                                :class="profileErrors.email ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40' : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'"
+                            />
+                            <p v-if="profileErrors.email" class="mt-1.5 text-xs text-red-400">{{ profileErrors.email[0] }}</p>
+                        </div>
 
-                <div class="flex justify-end">
-                    <button
-                        type="submit"
-                        :disabled="profileLoading"
-                        class="rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
-                    >
-                        {{ profileLoading ? 'Saving...' : 'Save Changes' }}
-                    </button>
-                </div>
-            </form>
-        </div>
+                        <div class="flex justify-end">
+                            <button
+                                type="submit"
+                                :disabled="profileLoading"
+                                class="rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50 mt-4"
+                            >
+                                {{ profileLoading ? 'Saving...' : 'Save Changes' }}
+                            </button>
+                        </div>
+                    </form>
+                </section>
 
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-            <h3 class="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300/80">Change Password</h3>
+                <div class="h-px w-full bg-white/10"></div>
 
-            <div v-if="passwordSuccess" class="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{{ passwordSuccess }}</div>
+                <section class="space-y-4">
+                    <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300/80">Change Password</h3>
 
-            <form @submit.prevent="updatePassword" class="space-y-4">
-                <div>
-                    <label for="current-password" class="mb-1.5 block text-sm font-medium text-slate-200">Current Password</label>
-                    <input
-                        id="current-password"
-                        v-model="currentPassword"
-                        type="password"
-                        required
-                        autocomplete="current-password"
-                        class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                        :class="passwordErrors.current_password ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40' : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'"
-                    />
-                    <p v-if="passwordErrors.current_password" class="mt-1.5 text-xs text-red-400">{{ passwordErrors.current_password[0] }}</p>
-                </div>
+                    <div v-if="passwordSuccess" class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{{ passwordSuccess }}</div>
 
-                <div>
-                    <label for="new-password" class="mb-1.5 block text-sm font-medium text-slate-200">New Password</label>
-                    <input
-                        id="new-password"
-                        v-model="newPassword"
-                        type="password"
-                        required
-                        autocomplete="new-password"
-                        class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                        :class="passwordErrors.password ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40' : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'"
-                    />
-                    <p v-if="passwordErrors.password" class="mt-1.5 text-xs text-red-400">{{ passwordErrors.password[0] }}</p>
-                </div>
+                    <form @submit.prevent="updatePassword" class="space-y-4">
+                        <div>
+                            <label for="current-password" class="mb-1.5 block text-sm font-medium text-slate-200">Current Password</label>
+                            <input
+                                id="current-password"
+                                v-model="currentPassword"
+                                type="password"
+                                required
+                                autocomplete="current-password"
+                                class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
+                                :class="passwordErrors.current_password ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40' : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'"
+                            />
+                            <p v-if="passwordErrors.current_password" class="mt-1.5 text-xs text-red-400">{{ passwordErrors.current_password[0] }}</p>
+                        </div>
 
-                <div>
-                    <label for="new-password-confirmation" class="mb-1.5 block text-sm font-medium text-slate-200">Confirm New Password</label>
-                    <input
-                        id="new-password-confirmation"
-                        v-model="newPasswordConfirmation"
-                        type="password"
-                        required
-                        autocomplete="new-password"
-                        class="w-full rounded-xl border border-white/10 bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40"
-                    />
-                </div>
+                        <div>
+                            <label for="new-password" class="mb-1.5 block text-sm font-medium text-slate-200">New Password</label>
+                            <input
+                                id="new-password"
+                                v-model="newPassword"
+                                type="password"
+                                required
+                                autocomplete="new-password"
+                                class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
+                                :class="passwordErrors.password ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40' : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'"
+                            />
+                            <p v-if="passwordErrors.password" class="mt-1.5 text-xs text-red-400">{{ passwordErrors.password[0] }}</p>
+                        </div>
 
-                <div class="flex justify-end">
-                    <button
-                        type="submit"
-                        :disabled="passwordLoading"
-                        class="rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
-                    >
-                        {{ passwordLoading ? 'Updating...' : 'Update Password' }}
-                    </button>
-                </div>
-            </form>
+                        <div>
+                            <label for="new-password-confirmation" class="mb-1.5 block text-sm font-medium text-slate-200">Confirm New Password</label>
+                            <input
+                                id="new-password-confirmation"
+                                v-model="newPasswordConfirmation"
+                                type="password"
+                                required
+                                autocomplete="new-password"
+                                class="w-full rounded-xl border border-white/10 bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40"
+                            />
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button
+                                type="submit"
+                                :disabled="passwordLoading"
+                                class="rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50 mt-4"
+                            >
+                                {{ passwordLoading ? 'Updating...' : 'Update Password' }}
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            </div>
         </div>
 
         <div class="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 backdrop-blur-xl">

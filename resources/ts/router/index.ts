@@ -1,8 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router';
 
-const guestOnlyRoutes = ['/login', '/register']
-
-const isGuestRoute = (path: string) => guestOnlyRoutes.includes(path)
 
 export const router = createRouter({
     history: createWebHistory(),
@@ -22,8 +19,23 @@ export const router = createRouter({
             component: () => import('@/Pages/Auth/RegisterPage.vue'),
         },
         {
-            path: '/create',
-            name: 'create',
+            path: '/forgot-password',
+            name: 'forgot-password',
+            component: () => import('@/Pages/Auth/ForgotPasswordPage.vue'),
+        },
+        {
+            path: '/reset-password/:token',
+            name: 'reset-password',
+            component: () => import('@/Pages/Auth/ResetPasswordPage.vue'),
+        },
+        {
+            path: '/verify-email',
+            name: 'verify-email',
+            component: () => import('@/Pages/Auth/VerifyEmailPage.vue'),
+        },
+        {
+            path: '/invoice/create',
+            name: 'invoice-create',
             component: () => import('@/Pages/InvoiceCreateView.vue'),
         },
         {
@@ -47,20 +59,26 @@ export const router = createRouter({
             component: () => import('@/Pages/ProfilePage.vue'),
         },
     ],
-})
+});
+
+const isGuestRoute = (path: string) =>
+    path === '/login' ||
+    path === '/register' ||
+    path === '/forgot-password' ||
+    path.startsWith('/reset-password');
 
 router.beforeEach((to, _, next) => {
-    const isLoggedIn = document.body.dataset.authenticated === '1'
+    const isLoggedIn = document.body.dataset.authenticated === '1';
 
     if (isLoggedIn && isGuestRoute(to.path)) {
-        next('/calendar')
-        return
+        next('/calendar');
+        return;
     }
 
     if (!isLoggedIn && !isGuestRoute(to.path)) {
-        next('/login')
-        return
+        next('/login');
+        return;
     }
 
-    next()
+    next();
 })

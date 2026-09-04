@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import axios from 'axios'
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
@@ -19,39 +20,44 @@ async function submit() {
     loading.value = true
 
     try {
-        const res = await fetch('/register', {
-            method: 'POST',
+        const res = await axios.post('/register', {
+            name: name.value,
+            email: email.value,
+            password: password.value,
+            password_confirmation: passwordConfirmation.value,
+        }, {
             headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
             },
-            body: JSON.stringify({
-                name: name.value,
-                email: email.value,
-                password: password.value,
-                password_confirmation: passwordConfirmation.value,
-            }),
         })
 
-        if (res.status === 422) {
-            const data = await res.json()
-            errors.value = data.errors ?? {}
-            if (!Object.keys(errors.value).length) {
-                generalError.value = data.message ?? 'Registration failed.'
-            }
-            return
-        }
-
-        if (!res.ok) {
-            generalError.value = 'Something went wrong. Please try again.'
+        if (res.data.redirect) {
+            document.body.dataset.authenticated = '1'
+            router.push(res.data.redirect)
             return
         }
 
         document.body.dataset.authenticated = '1'
         router.push('/calendar')
-    } catch {
-        generalError.value = 'Network error. Please try again.'
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            if (error.response?.status === 419) {
+                generalError.value = 'Your session expired. Please refresh the page and try again.'
+                return
+            }
+
+            if (error.response?.status === 422) {
+                errors.value = error.response.data.errors ?? {}
+
+                if (!Object.keys(errors.value).length) {
+                    generalError.value = error.response.data.message ?? 'Registration failed.'
+                }
+
+                return
+            }
+        }
+
+        generalError.value = 'Something went wrong. Please try again.'
     } finally {
         loading.value = false
     }

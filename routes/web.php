@@ -33,13 +33,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy']);
 });
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'show']);
-    Route::put('/profile', [ProfileController::class, 'update']);
-    Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
-    Route::delete('/profile', [ProfileController::class, 'destroy']);
-});
-
 Route::view('/{any}', 'app')
     ->where('any', '^(?!invoices$|dashboard$|profile).*$');
 

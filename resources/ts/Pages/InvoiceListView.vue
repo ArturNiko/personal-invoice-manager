@@ -59,7 +59,7 @@ const pendingDeleteMessage = computed(() => {
         return 'This action cannot be undone.'
     }
 
-    return `Delete "${pendingDeleteInvoice.value.title}"? This cannot be undone.`
+    return `Do you really want to delete "${pendingDeleteInvoice.value.title}"? This invoice will be permanently removed and cannot be recovered.`
 })
 
 const filteredRecurringCount = computed(() => {

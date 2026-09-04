@@ -51,14 +51,11 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice)
     {
-        $this->authorize('view', $invoice);
-
         return response()->json($invoice);
     }
 
     public function destroy(Invoice $invoice)
     {
-        $this->authorize('delete', $invoice);
         $invoice->delete();
 
         return response()->json(['message' => 'Invoice deleted successfully.']);
@@ -66,7 +63,6 @@ class InvoiceController extends Controller
 
     public function update(Invoice $invoice, InvoicesRequest $request)
     {
-        $this->authorize('update', $invoice);
         $validated = $request->validated();
 
         $invoice->update($validated);

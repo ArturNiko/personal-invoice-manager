@@ -29,7 +29,7 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -47,6 +47,12 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(config('invoices.landing_path', '/calendar'));
+        $redirect = $user->hasVerifiedEmail()
+            ? config('invoices.landing_path', '/calendar')
+            : route('verification.notice');
+
+        return response()->json([
+            'redirect' => $redirect,
+        ]);
     }
 }
