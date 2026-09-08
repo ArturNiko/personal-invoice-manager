@@ -1,48 +1,51 @@
 <script setup lang="ts">
-import { computed, ref } from "vue"
-import axios from "axios"
-import { getCurrencySymbol } from "@/Utils/Currency"
-import { useRoute, useRouter } from "vue-router"
+import axios from 'axios';
+import { computed, ref, watch } from 'vue';
+import { getCurrencySymbol } from '@/Utils/Currency';
+import { useRoute, useRouter } from 'vue-router';
 
-import { InvoiceTypes, type InvoiceEvent } from "@/Types/Invoice"
-import Badge from "@/Components/Badge.vue"
-import Button from "@/Components/Button.vue"
-import ConfirmationDialog from "@/Components/ConfirmationDialog.vue"
+import { InvoiceTypes, type InvoiceEvent } from '@/Types/Invoice';
+import Badge from '@/Components/Badge.vue';
+import Button from '@/Components/Button.vue';
+import ConfirmationDialog from '@/Components/ConfirmationDialog.vue';
+import { buildInvoiceQuery, useInvoices } from '@/Composables/useInvoices';
 
-const props = defineProps<{ invoices: InvoiceEvent[] }>()
-
-const route = useRoute()
-const router = useRouter()
-const deletingInvoiceId = ref<number | null>(null)
-const pendingDeleteInvoice = ref<InvoiceEvent | null>(null)
+const route = useRoute();
+const router = useRouter();
+const deletingInvoiceId = ref<number | null>(null);
+const pendingDeleteInvoice = ref<InvoiceEvent | null>(null);
+const { invoices, fetchInvoices } = useInvoices();
 
 const searchQuery = computed({
-    get: () => (typeof route.query.q === "string" ? route.query.q : ""),
+    get: () => (typeof route.query.q === 'string' ? route.query.q : ''),
     set: (value: string) => {
-        updateQuery({ q: value || undefined })
+        updateQuery({ q: value || undefined });
     },
-})
+});
 
 const typeFilter = computed({
     get: () => {
         const value =
-            typeof route.query.type === "string" ? route.query.type : "all"
-        return value === InvoiceTypes.ONE_TIME || value === InvoiceTypes.RECURRING ? value : "all"
+            typeof route.query.type === 'string' ? route.query.type : 'all';
+        return value === InvoiceTypes.ONE_TIME ||
+            value === InvoiceTypes.RECURRING
+            ? value
+            : 'all';
     },
-    set: (value: "all" | InvoiceTypes.ONE_TIME | InvoiceTypes.RECURRING) => {
-        updateQuery({ type: value === "all" ? undefined : value })
+    set: (value: 'all' | InvoiceTypes.ONE_TIME | InvoiceTypes.RECURRING) => {
+        updateQuery({ type: value === 'all' ? undefined : value });
     },
-})
+});
 
 const sortDirection = computed({
-    get: () => (route.query.direction === "desc" ? "descending" : "ascending"),
-    set: (value: "ascending" | "descending") => {
+    get: () => (route.query.direction === 'desc' ? 'descending' : 'ascending'),
+    set: (value: 'ascending' | 'descending') => {
         updateQuery({
-            sort: "start_date",
-            direction: value === "ascending" ? "asc" : "desc",
-        })
+            sort: 'start_date',
+            direction: value === 'ascending' ? 'asc' : 'desc',
+        });
     },
-})
+});
 
 const updateQuery = (updates: Record<string, string | undefined>) => {
     router.replace({
@@ -50,132 +53,137 @@ const updateQuery = (updates: Record<string, string | undefined>) => {
             ...route.query,
             ...updates,
         },
-    })
-}
+    });
+};
 
-const visibleInvoices = computed(() => props.invoices)
+const invoiceQuery = computed(() => buildInvoiceQuery(route.query));
+const visibleInvoices = computed(() => invoices.value);
 const pendingDeleteMessage = computed(() => {
     if (!pendingDeleteInvoice.value) {
-        return 'This action cannot be undone.'
+        return 'This action cannot be undone.';
     }
 
-    return `Do you really want to delete "${pendingDeleteInvoice.value.title}"? This invoice will be permanently removed and cannot be recovered.`
-})
+    return `Do you really want to delete "${pendingDeleteInvoice.value.title}"? This invoice will be permanently removed and cannot be recovered.`;
+});
 
 const filteredRecurringCount = computed(() => {
     return visibleInvoices.value.filter(
         (invoice) => invoice.type === InvoiceTypes.RECURRING,
-    ).length
-})
+    ).length;
+});
 
 const filteredOneTimeCount = computed(() => {
     return visibleInvoices.value.filter(
         (invoice) => invoice.type === InvoiceTypes.ONE_TIME,
-    ).length
-})
+    ).length;
+});
 
 const toggleSortDirection = () => {
     sortDirection.value =
-        sortDirection.value === "ascending" ? "descending" : "ascending"
-}
+        sortDirection.value === 'ascending' ? 'descending' : 'ascending';
+};
 
 const getTypeCountLabel = (count: number) => {
-    return count === 1 ? "item" : "items"
-}
+    return count === 1 ? 'item' : 'items';
+};
 
 const formatDate = (dateValue?: string) => {
-    if (!dateValue) {
-        return "No due date"
-    }
+    if (!dateValue) return 'No due date';
 
-    const parsedDate = new Date(dateValue)
+    const parsedDate = new Date(dateValue);
 
-    if (Number.isNaN(parsedDate.getTime())) {
-        return dateValue
-    }
+    if (Number.isNaN(parsedDate.getTime())) return dateValue;
 
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    }).format(parsedDate)
-}
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    }).format(parsedDate);
+};
 
 const formatAmount = (invoice: InvoiceEvent) => {
-    const amount = invoice.price
-    const symbol = getCurrencySymbol(invoice.currency)
+    const amount = invoice.price;
+    const symbol = getCurrencySymbol(invoice.currency);
 
-    return `${symbol}${amount}`
-}
+    return `${symbol}${amount}`;
+};
 
 const getTypeVariant = (type: string) => {
-    return type === "recurring"
-        ? "teal"
-        : "sky"
-}
+    return type === 'recurring' ? 'teal' : 'sky';
+};
 
 const getTypeLabel = (type: string) => {
-    return type === InvoiceTypes.RECURRING ? "Recurring" : "One-time"
-}
+    return type === InvoiceTypes.RECURRING ? 'Recurring' : 'One-time';
+};
 
 const getStatusVariant = (status: string) => {
     switch (status) {
-        case "paid":
-            return "emerald"
-        case "overdue":
-            return "rose"
+        case 'paid':
+            return 'emerald';
+        case 'overdue':
+            return 'rose';
         default:
-            return "amber"
+            return 'amber';
     }
-}
+};
 
 const getStatusLabel = (status: string) => {
     switch (status) {
-        case "paid":
-            return "Paid"
-        case "overdue":
-            return "Overdue"
+        case 'paid':
+            return 'Paid';
+        case 'overdue':
+            return 'Overdue';
         default:
-            return "Pending"
+            return 'Pending';
     }
-}
+};
 
 const editInvoice = (id: number) => {
-    router.push({ name: "invoice-edit", params: { id: id.toString() } })
-}
+    router.push({ name: 'invoice-edit', params: { id: id.toString() } });
+};
 
 const promptDeleteInvoice = (invoice: InvoiceEvent) => {
-    pendingDeleteInvoice.value = invoice
-}
+    pendingDeleteInvoice.value = invoice;
+};
 
 const closeDeleteDialog = () => {
-    if (deletingInvoiceId.value !== null) return
+    if (deletingInvoiceId.value !== null) return;
 
-    pendingDeleteInvoice.value = null
-}
+    pendingDeleteInvoice.value = null;
+};
 
 const confirmDeleteInvoice = async () => {
-    if (!pendingDeleteInvoice.value?.id) return
+    if (!pendingDeleteInvoice.value?.id) return;
 
-    const invoiceId = pendingDeleteInvoice.value.id
+    const invoiceId = pendingDeleteInvoice.value.id;
 
-    deletingInvoiceId.value = invoiceId
+    deletingInvoiceId.value = invoiceId;
 
     try {
-        await axios.delete(`/invoices/${invoiceId}`)
-        pendingDeleteInvoice.value = null
+        await axios.delete(`/invoices/${invoiceId}`);
+        pendingDeleteInvoice.value = null;
         await router.replace({
             query: {
                 ...route.query,
                 deleted: String(Date.now()),
             },
-        })
-    } catch (error) {
-        console.error("Failed to delete invoice:", error)
-    } finally {
-        deletingInvoiceId.value = null
+        });
+    } 
+    catch (error) {
+        console.error('Failed to delete invoice:', error);
+    } 
+    finally {
+        deletingInvoiceId.value = null;
     }
-}
+};
+
+watch(
+    () => route.query,
+    async () => {
+        await fetchInvoices(invoiceQuery.value);
+    },
+    { deep: true, immediate: true },
+);
 </script>
 
 <template>
@@ -191,7 +199,9 @@ const confirmDeleteInvoice = async () => {
                     Event-backed invoice entries synced from your API feed.
                 </p>
             </div>
-            <Badge variant="sky" size="md">{{ visibleInvoices.length }} invoices</Badge>
+            <Badge variant="sky" size="md"
+                >{{ visibleInvoices.length }} invoices</Badge
+            >
         </div>
 
         <div class="border-b border-white/10 p-4 sm:p-6">
@@ -217,14 +227,22 @@ const confirmDeleteInvoice = async () => {
                         All
                     </Button>
                     <Button
-                        :variant="typeFilter === InvoiceTypes.ONE_TIME ? 'sky' : 'outline'"
+                        :variant="
+                            typeFilter === InvoiceTypes.ONE_TIME
+                                ? 'sky'
+                                : 'outline'
+                        "
                         size="md"
                         @click="typeFilter = InvoiceTypes.ONE_TIME"
                     >
                         One-time
                     </Button>
                     <Button
-                        :variant="typeFilter === InvoiceTypes.RECURRING ? 'teal' : 'outline'"
+                        :variant="
+                            typeFilter === InvoiceTypes.RECURRING
+                                ? 'teal'
+                                : 'outline'
+                        "
                         size="md"
                         @click="typeFilter = InvoiceTypes.RECURRING"
                     >
@@ -237,9 +255,9 @@ const confirmDeleteInvoice = async () => {
                     >
                         Sort:
                         {{
-                            sortDirection === "ascending"
-                                ? "Soonest first"
-                                : "Latest first"
+                            sortDirection === 'ascending'
+                                ? 'Soonest first'
+                                : 'Latest first'
                         }}
                     </Button>
                 </div>
@@ -261,7 +279,9 @@ const confirmDeleteInvoice = async () => {
                             class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                         >
                             <div class="min-w-0">
-                                <p class="truncate text-sm font-semibold text-white sm:text-base">
+                                <p
+                                    class="truncate text-sm font-semibold text-white sm:text-base"
+                                >
                                     {{ invoice.title }}
                                 </p>
                                 <p class="text-xs text-slate-400 sm:text-sm">
@@ -269,7 +289,9 @@ const confirmDeleteInvoice = async () => {
                                 </p>
                             </div>
                             <div class="text-left sm:text-right">
-                                <p class="text-base font-semibold text-white sm:text-lg">
+                                <p
+                                    class="text-base font-semibold text-white sm:text-lg"
+                                >
                                     {{ formatAmount(invoice) }}
                                 </p>
                                 <p class="text-xs text-slate-400 sm:text-sm">
@@ -285,11 +307,15 @@ const confirmDeleteInvoice = async () => {
                                 <Badge :variant="getTypeVariant(invoice.type)">
                                     {{ getTypeLabel(invoice.type) }}
                                 </Badge>
-                                <Badge :variant="getStatusVariant(invoice.status)">
+                                <Badge
+                                    :variant="getStatusVariant(invoice.status)"
+                                >
                                     {{ getStatusLabel(invoice.status) }}
                                 </Badge>
                             </div>
-                            <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center">
+                            <div
+                                class="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center"
+                            >
                                 <Button
                                     variant="outline"
                                     size="sm"

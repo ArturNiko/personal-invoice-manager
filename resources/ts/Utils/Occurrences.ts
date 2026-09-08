@@ -1,4 +1,8 @@
-export const calculateOccurrencesCount = (startDate: string, endDate: string, recurrence: string): number => {
+export const calculateOccurrencesCount = (
+    startDate: string,
+    endDate: string,
+    recurrence: string,
+): number => {
     if (!startDate || !endDate || !recurrence) return 0;
 
     const start = new Date(startDate);

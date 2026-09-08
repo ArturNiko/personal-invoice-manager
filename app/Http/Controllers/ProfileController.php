@@ -20,6 +20,7 @@ class ProfileController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'email_verified' => $user->hasVerifiedEmail(),
             ],
         ]);
     }
@@ -40,6 +41,7 @@ class ProfileController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'email_verified' => $user->hasVerifiedEmail(),
             ],
         ]);
     }

@@ -5,18 +5,16 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class EmailVerificationPromptController extends Controller
 {
     /**
-     * Display the email verification prompt.
+     * Fallback redirect for direct access to the verification route.
      */
-    public function __invoke(Request $request): RedirectResponse|Response
+    public function __invoke(Request $request): RedirectResponse
     {
         return $request->user()->hasVerifiedEmail()
-                    ? redirect()->intended(config('invoices.landing_path', '/calendar'))
-                    : Inertia::render('Auth/VerifyEmail', ['status' => session('status')]);
+            ? redirect()->intended(config('invoices.landing_path', '/calendar'))
+            : redirect()->to('/verify-email');
     }
 }

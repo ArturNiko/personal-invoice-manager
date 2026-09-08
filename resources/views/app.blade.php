@@ -9,7 +9,10 @@
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     @vite(['resources/css/app.css', 'resources/ts/app.ts'])
 </head>
-<body data-authenticated="{{ auth()->check() ? '1' : '0' }}">
+<body
+    data-authenticated="{{ auth()->check() ? '1' : '0' }}"
+    data-verified="{{ auth()->check() && auth()->user()->hasVerifiedEmail() ? '1' : '0' }}"
+>
 
 <div id="app"></div>
 

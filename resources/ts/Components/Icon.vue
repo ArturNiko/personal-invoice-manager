@@ -1,45 +1,41 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const props = withDefaults(
     defineProps<{
-        icon: string
-        theme?: 'auto' | 'light' | 'dark'
+        icon: string;
+        theme?: 'auto' | 'light' | 'dark';
     }>(),
     {
         theme: 'auto',
     },
-)
+);
 
-const iconUrl = `/icons/${props.icon}.svg`
+const iconUrl = `/icons/${props.icon}.svg`;
 
-const systemTheme = ref<'light' | 'dark'>('light')
-const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+const systemTheme = ref<'light' | 'dark'>('light');
+const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 const updateSystemTheme = () => {
-    systemTheme.value = mediaQuery.matches ? 'dark' : 'light'
-}
+    systemTheme.value = mediaQuery.matches ? 'dark' : 'light';
+};
 
 const theme = computed(() => {
     if (props.theme === 'auto') {
-        return systemTheme.value
+        return systemTheme.value;
     }
 
-    return props.theme
-})
+    return props.theme;
+});
 
 onMounted(() => {
-    updateSystemTheme()
-    mediaQuery.addEventListener('change', updateSystemTheme)
-})
+    updateSystemTheme();
+    mediaQuery.addEventListener('change', updateSystemTheme);
+});
 
 onUnmounted(() => {
-    mediaQuery.removeEventListener('change', updateSystemTheme)
-})
-
-
-
+    mediaQuery.removeEventListener('change', updateSystemTheme);
+});
 </script>
 
 <template>
@@ -76,4 +72,3 @@ onUnmounted(() => {
     }
 }
 </style>
-

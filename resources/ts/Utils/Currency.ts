@@ -1,4 +1,4 @@
-import { Currency } from "@/Types/Currency";
+import { Currency } from '@/Types/Currency';
 
 export const getCurrencySymbol = (currency: Currency): string => {
     switch (currency) {

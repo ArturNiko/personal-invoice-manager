@@ -3,8 +3,8 @@ import { computed } from 'vue';
 
 const props = withDefaults(
     defineProps<{
-        variant?: 'sky' | 'teal' | 'emerald' | 'rose' | 'amber'
-        size?: 'sm' | 'md'
+        variant?: 'sky' | 'teal' | 'emerald' | 'rose' | 'amber';
+        size?: 'sm' | 'md';
     }>(),
     {
         variant: 'sky',

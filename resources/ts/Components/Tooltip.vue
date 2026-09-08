@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 
-type TooltipPositionEvent = MouseEvent | PointerEvent | TouchEvent
-type TooltipAnchorElement = HTMLElement | null
+type TooltipPositionEvent = MouseEvent | PointerEvent | TouchEvent;
+type TooltipAnchorElement = HTMLElement | null;
 
 const props = withDefaults(
     defineProps<{
-        width?: string
-        closeOnOutsideClick?: boolean
-        closeOnClick?: boolean
-        offset?: number
+        width?: string;
+        closeOnOutsideClick?: boolean;
+        closeOnClick?: boolean;
+        offset?: number;
     }>(),
     {
         width: 'w-64',
@@ -26,11 +26,11 @@ const anchor = ref<{ x: number; y: number } | null>(null);
 const anchorElement = ref<TooltipAnchorElement>(null);
 
 const emit = defineEmits<{
-    close: [event?: Event]
+    close: [event?: Event];
 }>();
 
 const clamp = (value: number, min: number, max: number) => {
-    return Math.min(Math.max(value, min), max)
+    return Math.min(Math.max(value, min), max);
 };
 
 const getPointerPosition = (event: TooltipPositionEvent) => {
@@ -65,8 +65,12 @@ const updatePosition = () => {
     const tooltipHeight = rect.height;
 
     const anchorRect = getAnchorRect();
-    const anchorX = anchorRect ? anchorRect.left : anchor.value!.x - window.scrollX;
-    const anchorY = anchorRect ? anchorRect.bottom : anchor.value!.y - window.scrollY;
+    const anchorX = anchorRect
+        ? anchorRect.left
+        : anchor.value!.x - window.scrollX;
+    const anchorY = anchorRect
+        ? anchorRect.bottom
+        : anchor.value!.y - window.scrollY;
 
     let left = anchorX + props.offset;
     let top = anchorY + props.offset;
@@ -86,9 +90,16 @@ const updatePosition = () => {
     };
 };
 
-const open = async (event: TooltipPositionEvent, element?: HTMLElement | null) => {
+const open = async (
+    event: TooltipPositionEvent,
+    element?: HTMLElement | null,
+) => {
     anchor.value = getPointerPosition(event);
-    anchorElement.value = element ?? (event.currentTarget instanceof HTMLElement ? event.currentTarget : null);
+    anchorElement.value =
+        element ??
+        (event.currentTarget instanceof HTMLElement
+            ? event.currentTarget
+            : null);
     isOpen.value = true;
     positionStyle.value = { visibility: 'hidden' };
 
@@ -107,7 +118,7 @@ const close = (event?: Event) => {
 
 const handleClick = () => {
     if (props.closeOnClick) close();
-}
+};
 
 const handleDocumentPointerDown = (event: PointerEvent) => {
     if (!props.closeOnOutsideClick || !isOpen.value) return;
@@ -121,7 +132,7 @@ const handleDocumentPointerDown = (event: PointerEvent) => {
     if (anchorElement.value?.contains(target)) return;
 
     close(event);
-}
+};
 
 onMounted(() => {
     document.addEventListener('pointerdown', handleDocumentPointerDown);

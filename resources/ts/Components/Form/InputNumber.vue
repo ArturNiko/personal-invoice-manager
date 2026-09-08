@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import InputLabel from "./InputLabel.vue"
+import InputLabel from './InputLabel.vue';
 
 const props = defineProps<{
-    modelValue: string
-    label: string
-    placeholder?: string
-    required?: boolean
-    disabled?: boolean
-    min?: number | string
-    step?: number | string
-}>()
+    modelValue: string;
+    label: string;
+    placeholder?: string;
+    required?: boolean;
+    disabled?: boolean;
+    min?: number | string;
+    step?: number | string;
+}>();
 
 const emit = defineEmits<{
-    "update:modelValue": [value: string]
-}>()
+    'update:modelValue': [value: string];
+}>();
 
 const handleInput = (event: Event) => {
-    emit("update:modelValue", (event.target as HTMLInputElement).value)
-}
+    emit('update:modelValue', (event.target as HTMLInputElement).value);
+};
 </script>
 
 <template>
@@ -37,14 +37,14 @@ const handleInput = (event: Event) => {
 </template>
 <style scoped>
 /* Chrome, Safari, Edge, Opera */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
 
 /* Firefox */
-input[type="number"] {
+input[type='number'] {
     -moz-appearance: textfield;
     appearance: textfield;
 }

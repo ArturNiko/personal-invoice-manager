@@ -10,17 +10,26 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 
 import type { CalendarOptions } from '@fullcalendar/core';
-import type { EventClickArg, EventContentArg, EventInput } from '@fullcalendar/core';
-import { InvoiceRecurrence, InvoiceTypes, type InvoiceEvent } from '@/Types/Invoice';
+import type {
+    EventClickArg,
+    EventContentArg,
+    EventInput,
+} from '@fullcalendar/core';
+import {
+    InvoiceRecurrence,
+    InvoiceTypes,
+    type InvoiceEvent,
+} from '@/Types/Invoice';
+import { useInvoices } from '@/Composables/useInvoices';
 
 type CalendarDateClickArg = {
-    dateStr: string
-    jsEvent: MouseEvent
-    dayEl: HTMLElement
+    dateStr: string;
+    jsEvent: MouseEvent;
+    dayEl: HTMLElement;
 };
 
 const router = useRouter();
-const props = defineProps<{ invoices: InvoiceEvent[] }>();
+const { invoices, fetchInvoices } = useInvoices();
 const isCompactView = ref(false);
 const tooltipDate = ref('');
 const tooltip = ref<InstanceType<typeof Tooltip> | null>(null);
@@ -30,7 +39,8 @@ const updateCalendarView = () => {
     const width = window.innerWidth;
     const nextCompactView = width < 768;
 
-    if (isCompactView.value !== nextCompactView) isCompactView.value = nextCompactView;
+    if (isCompactView.value !== nextCompactView)
+        isCompactView.value = nextCompactView;
 
     if (!calendarRef.value) return;
 
@@ -67,7 +77,7 @@ const addMonths = (date: Date, months: number) => {
 
 const addYears = (date: Date, years: number) => {
     return addMonths(date, years * 12);
-}
+};
 
 const addMonthsClamped = (date: Date, months: number) => {
     const nextDate = new Date(date);
@@ -131,7 +141,9 @@ const buildInvoiceEvents = (invoice: InvoiceEvent): EventInput[] => {
 
     const events: EventInput[] = [];
     const startDate = toDateOnly(invoice.start_date);
-    const endDate = invoice.end_date ? toDateOnly(invoice.end_date) : addYears(startDate, 10);
+    const endDate = invoice.end_date
+        ? toDateOnly(invoice.end_date)
+        : addYears(startDate, 10);
     let currentDate = new Date(startDate);
 
     while (currentDate <= endDate) {
@@ -149,7 +161,10 @@ const buildInvoiceEvents = (invoice: InvoiceEvent): EventInput[] => {
             classNames: getEventClassNames(invoice),
         });
 
-        const nextDate = advanceCalendarRecurrenceDate(currentDate, invoice.recurrence ?? InvoiceRecurrence.MONTHLY);
+        const nextDate = advanceCalendarRecurrenceDate(
+            currentDate,
+            invoice.recurrence ?? InvoiceRecurrence.MONTHLY,
+        );
 
         if (!nextDate) break;
 
@@ -167,8 +182,8 @@ const getEventClassNames = (event: InvoiceEvent) => {
 
 const getAmountLabel = (event: InvoiceEvent) => {
     return event.recurrence
-    ? `${getCurrencySymbol(event.currency)}${event.price} / ${event.recurrence}` 
-    : `${getCurrencySymbol(event.currency)}${event.price}`;
+        ? `${getCurrencySymbol(event.currency)}${event.price} / ${event.recurrence}`
+        : `${getCurrencySymbol(event.currency)}${event.price}`;
 };
 
 const closeTooltip = () => {
@@ -186,11 +201,11 @@ const openTooltip = async (clickInfo: CalendarDateClickArg) => {
 const createInvoiceForDay = () => {
     if (!tooltipDate.value) return;
 
-    router.push({ 
+    router.push({
         name: 'create',
-        query: { 
-            date: tooltipDate.value 
-        } 
+        query: {
+            date: tooltipDate.value,
+        },
     });
 };
 
@@ -198,11 +213,13 @@ const handleEventClick = (clickEvent: EventClickArg) => {
     router.push({
         name: 'invoice-edit',
         params: {
-            id: String(clickEvent.event.extendedProps.invoiceId ?? clickEvent.event.id),
+            id: String(
+                clickEvent.event.extendedProps.invoiceId ?? clickEvent.event.id,
+            ),
         },
     });
 };
-    
+
 const calendarOptions = computed<CalendarOptions>(() => ({
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: calendarView.value,
@@ -223,8 +240,8 @@ const calendarOptions = computed<CalendarOptions>(() => ({
     buttonText: {
         today: 'Today',
     },
-    
-    events: props.invoices.flatMap((invoice) => buildInvoiceEvents(invoice)),
+
+    events: invoices.value.flatMap((invoice) => buildInvoiceEvents(invoice)),
     eventContent: (eventInfo: EventContentArg) => ({
         html: `
             <div class="invoice-event-content${isCompactView.value ? ' invoice-event-content--compact' : ''}">
@@ -245,6 +262,7 @@ const calendarOptions = computed<CalendarOptions>(() => ({
 }));
 
 onMounted(() => {
+    void fetchInvoices();
     updateCalendarView();
     window.addEventListener('resize', updateCalendarView);
     window.addEventListener('orientationchange', updateCalendarView);
@@ -257,17 +275,24 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('resize', updateCalendarView);
 });
-
 </script>
 
 <template>
-    <section class="calendar-shell relative flex h-full min-h-[38rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl">
-        <div class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
+    <section
+        class="calendar-shell relative flex h-full min-h-[38rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
+    >
+        <div
+            class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6"
+        >
             <div>
                 <h2 class="text-lg font-semibold text-white">Calendar</h2>
-                <p class="text-sm text-slate-400 mr-4">Monthly planning view with invoice-related reminders.</p>
+                <p class="text-sm text-slate-400 mr-4">
+                    Monthly planning view with invoice-related reminders.
+                </p>
             </div>
-            <Badge variant="sky" size="md">{{ invoices.length }} invoices</Badge>
+            <Badge variant="sky" size="md"
+                >{{ invoices.length }} invoices</Badge
+            >
         </div>
 
         <div class="flex-1 p-3 sm:p-5">
@@ -281,13 +306,11 @@ onUnmounted(() => {
                 />
             </div>
         </div>
-        <Tooltip
-            ref="tooltip"
-            width="w-72"
-            @close="closeTooltip"
-        >
+        <Tooltip ref="tooltip" width="w-72" @close="closeTooltip">
             <div class="space-y-2">
-                <p class="text-xs uppercase tracking-[0.24em] text-slate-400">Selected day</p>
+                <p class="text-xs uppercase tracking-[0.24em] text-slate-400">
+                    Selected day
+                </p>
                 <p class="text-xs text-slate-400">{{ tooltipDate }}</p>
 
                 <button
@@ -424,15 +447,27 @@ onUnmounted(() => {
 
 /* Individual event themes */
 .invoice-calendar.fc .fc-daygrid-event.invoice-event {
-    background: linear-gradient(135deg, rgba(88, 28, 135, 0.9), rgba(109, 40, 217, 0.82));
+    background: linear-gradient(
+        135deg,
+        rgba(88, 28, 135, 0.9),
+        rgba(109, 40, 217, 0.82)
+    );
 }
 
 .invoice-calendar.fc .fc-daygrid-event.invoice-event--one-time {
-    background: linear-gradient(135deg, rgba(30, 64, 175, 0.9), rgba(37, 99, 235, 0.82));
+    background: linear-gradient(
+        135deg,
+        rgba(30, 64, 175, 0.9),
+        rgba(37, 99, 235, 0.82)
+    );
 }
 
 .invoice-calendar.fc .fc-daygrid-event.invoice-event--recurring {
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.92), rgba(20, 184, 166, 0.75));
+    background: linear-gradient(
+        135deg,
+        rgba(15, 118, 110, 0.92),
+        rgba(20, 184, 166, 0.75)
+    );
 }
 
 /* Event pill inner padding */
@@ -485,8 +520,12 @@ onUnmounted(() => {
 }
 
 .invoice-calendar--compact.fc .fc-daygrid-event.invoice-event .fc-event-main,
-.invoice-calendar--compact.fc .fc-daygrid-event.invoice-event .fc-event-main-frame,
-.invoice-calendar--compact.fc .fc-daygrid-event.invoice-event .invoice-event-content {
+.invoice-calendar--compact.fc
+    .fc-daygrid-event.invoice-event
+    .fc-event-main-frame,
+.invoice-calendar--compact.fc
+    .fc-daygrid-event.invoice-event
+    .invoice-event-content {
     padding: 0.28rem 0.45rem 0.28rem 0.38rem;
 }
 
@@ -533,5 +572,4 @@ onUnmounted(() => {
     filter: brightness(1.08) saturate(1.02);
     transform: translateY(-1px);
 }
-
 </style>

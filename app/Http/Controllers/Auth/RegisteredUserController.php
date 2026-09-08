@@ -11,19 +11,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     */
-    public function create(): Response
-    {
-        return Inertia::render('Auth/Register');
-    }
-
     /**
      * Handle an incoming registration request.
      *
@@ -47,9 +37,11 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        $redirect = $user->hasVerifiedEmail()
-            ? config('invoices.landing_path', '/calendar')
-            : route('verification.notice');
+        $redirect = config('invoices.landing_path', '/calendar');
+
+        if (! $user->hasVerifiedEmail()) {
+            $redirect .= '?verification=needed';
+        }
 
         return response()->json([
             'redirect' => $redirect,

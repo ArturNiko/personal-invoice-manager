@@ -1,4 +1,8 @@
-import { InvoiceStatuses, InvoiceTypes, InvoiceRecurrence } from '@/Types/Invoice';
+import {
+    InvoiceStatuses,
+    InvoiceTypes,
+    InvoiceRecurrence,
+} from '@/Types/Invoice';
 import { Currency } from '@/Types/Currency';
 
 export const invoiceStatusOptions = [

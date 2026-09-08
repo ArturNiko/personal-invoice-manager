@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-
 export const router = createRouter({
     history: createWebHistory(),
     routes: [
@@ -11,26 +10,31 @@ export const router = createRouter({
         {
             path: '/login',
             name: 'login',
+            meta: { guest: true },
             component: () => import('@/Pages/Auth/LoginPage.vue'),
         },
         {
             path: '/register',
             name: 'register',
+            meta: { guest: true },
             component: () => import('@/Pages/Auth/RegisterPage.vue'),
         },
         {
             path: '/forgot-password',
             name: 'forgot-password',
+            meta: { guest: true },
             component: () => import('@/Pages/Auth/ForgotPasswordPage.vue'),
         },
         {
             path: '/reset-password/:token',
             name: 'reset-password',
+            meta: { guest: true },
             component: () => import('@/Pages/Auth/ResetPasswordPage.vue'),
         },
         {
             path: '/verify-email',
             name: 'verify-email',
+            meta: { unverified: true },
             component: () => import('@/Pages/Auth/VerifyEmailPage.vue'),
         },
         {
@@ -58,27 +62,34 @@ export const router = createRouter({
             name: 'profile',
             component: () => import('@/Pages/ProfilePage.vue'),
         },
+        {
+            path: '/:pathMatch(.*)*',
+            name: 'fallback',
+            component: () => import('@/Pages/NotFoundView.vue'),
+        },
     ],
 });
 
-const isGuestRoute = (path: string) =>
-    path === '/login' ||
-    path === '/register' ||
-    path === '/forgot-password' ||
-    path.startsWith('/reset-password');
 
 router.beforeEach((to, _, next) => {
     const isLoggedIn = document.body.dataset.authenticated === '1';
 
-    if (isLoggedIn && isGuestRoute(to.path)) {
+    const isGuestRoute = to.meta.guest === true;
+
+    if (to.name === 'fallback') {
+        next();
+        return;
+    }
+
+    if (isLoggedIn && isGuestRoute) {
         next('/calendar');
         return;
     }
 
-    if (!isLoggedIn && !isGuestRoute(to.path)) {
+    if (!isLoggedIn && !isGuestRoute) {
         next('/login');
         return;
     }
 
     next();
-})
+});

@@ -5,13 +5,13 @@ import Button from '@/Components/Button.vue';
 
 const props = withDefaults(
     defineProps<{
-        open: boolean
-        title?: string
-        message?: string
-        confirmLabel?: string
-        cancelLabel?: string
-        busyLabel?: string
-        busy?: boolean
+        open: boolean;
+        title?: string;
+        message?: string;
+        confirmLabel?: string;
+        cancelLabel?: string;
+        busyLabel?: string;
+        busy?: boolean;
     }>(),
     {
         title: 'Delete invoice?',
@@ -24,8 +24,8 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-    close: []
-    confirm: []
+    close: [];
+    confirm: [];
 }>();
 
 const handleKeydown = (event: KeyboardEvent) => {
@@ -67,11 +67,10 @@ onBeforeUnmount(() => {
                     {{ message }}
                 </p>
 
-                <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                    <Button
-                        variant="outline"
-                        @click="emit('close')"
-                    >
+                <div
+                    class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"
+                >
+                    <Button variant="outline" @click="emit('close')">
                         {{ cancelLabel }}
                     </Button>
                     <Button

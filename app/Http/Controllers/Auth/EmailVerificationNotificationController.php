@@ -11,14 +11,19 @@ class EmailVerificationNotificationController extends Controller
     /**
      * Send a new email verification notification.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended(config('invoices.landing_path', '/calendar'));
+            return response()->json([
+                'message' => 'Email already verified.',
+                'redirect' => config('invoices.landing_path', '/calendar'),
+            ]);
         }
 
         $request->user()->sendEmailVerificationNotification();
 
-        return back()->with('status', 'verification-link-sent');
+        return response()->json([
+            'message' => 'verification-link-sent',
+        ]);
     }
 }

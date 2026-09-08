@@ -10,11 +10,19 @@ const expression = ref('');
 const history = ref<HistoryItem[]>([]);
 const historyOpen = ref(false);
 
-
 const isError = () => computed(() => currentInput.value === 'Error');
-const isEmpty = () => computed(() => currentInput.value === '0' || currentInput.value === '');
-const isLastDigit = () => computed(() => currentInput.value.length > 0 && /\d$/.test(currentInput.value));
-const isLastOperator = () => computed(() => currentInput.value.length > 0 && / [+\-*/%]$/.test(currentInput.value));
+const isEmpty = () =>
+    computed(() => currentInput.value === '0' || currentInput.value === '');
+const isLastDigit = () =>
+    computed(
+        () => currentInput.value.length > 0 && /\d$/.test(currentInput.value),
+    );
+const isLastOperator = () =>
+    computed(
+        () =>
+            currentInput.value.length > 0 &&
+            / [+\-*/%]$/.test(currentInput.value),
+    );
 
 const saveHistory = () => {
     history.value.unshift({
@@ -22,7 +30,7 @@ const saveHistory = () => {
         expression: expression.value,
         result: currentInput.value,
     });
-        
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history.value));
 };
 
@@ -36,6 +44,7 @@ const toggleHistory = () => {
 };
 
 const recallFromHistory = (item: HistoryItem) => {
+    expression.value = item.expression;
     currentInput.value = item.result;
     historyOpen.value = false;
 };
@@ -100,7 +109,6 @@ const inputDecimal = () => {
     }
 
     currentInput.value += '.';
-
 };
 
 const inputDigit = (digit: string) => {
@@ -129,7 +137,9 @@ const toggleSign = () => {
 
     const parts = currentInput.value.split(' ');
     const lastPart = parts[parts.length - 1];
-    const toggledPart = lastPart.startsWith('-') ? lastPart.slice(1) : `-${lastPart}`;
+    const toggledPart = lastPart.startsWith('-')
+        ? lastPart.slice(1)
+        : `-${lastPart}`;
     parts[parts.length - 1] = toggledPart;
     currentInput.value = parts.join(' ');
 };
@@ -151,7 +161,7 @@ const handleKeydown = (event: KeyboardEvent) => {
             break;
         case 'Backspace':
             clearLast();
-            break;    
+            break;
         case '+':
         case '-':
         case '*':
@@ -172,8 +182,7 @@ onMounted(() => {
     if (storedHistory) {
         try {
             history.value = JSON.parse(storedHistory);
-        } 
-        catch (error) {
+        } catch (error) {
             console.error('Failed to parse stored history:', error);
         }
     }
@@ -188,13 +197,22 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="mx-auto w-full max-w-[500px] text-slate-100">
-        <div class="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+        <div
+            class="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400"
+        >
             Tally <span class="text-orange-400">·</span> desk calculator
         </div>
 
-        <div class="relative z-10 rounded-[22px] bg-gradient-to-br from-[#252a37] to-[#1d212c] p-[18px] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-1px_0_rgba(0,0,0,0.4)]">
-            <div class="mb-[14px] flex min-h-[96px] flex-col justify-end overflow-hidden rounded-[14px] bg-[#0b0d12] px-[18px] pb-4 pt-[22px] shadow-inner shadow-black/60">
-                <div ref="topLineRef" class="calculator-scrollbar-none h-4 overflow-x-auto overflow-y-hidden whitespace-nowrap text-right font-mono text-[12px] tracking-[0.02em] text-[#5c6070]">
+        <div
+            class="relative z-10 rounded-[22px] bg-gradient-to-br from-[#252a37] to-[#1d212c] p-[18px] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-1px_0_rgba(0,0,0,0.4)]"
+        >
+            <div
+                class="mb-[14px] flex min-h-[96px] flex-col justify-end overflow-hidden rounded-[14px] bg-[#0b0d12] px-[18px] pb-4 pt-[22px] shadow-inner shadow-black/60"
+            >
+                <div
+                    ref="topLineRef"
+                    class="calculator-scrollbar-none h-4 overflow-x-auto overflow-y-hidden whitespace-nowrap text-right font-mono text-[12px] tracking-[0.02em] text-[#5c6070]"
+                >
                     {{ expression || '\u00A0' }}
                 </div>
                 <div
@@ -207,40 +225,146 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="grid grid-cols-4 gap-2">
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[15px] sm:text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="clearAll">C</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[15px] sm:text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="toggleSign">±</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[15px] sm:text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="setOperator('%')">%</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': isOperatorActive('/') }" @click="setOperator('/')">÷</button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[15px] sm:text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="clearAll"
+                >
+                    C
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[15px] sm:text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="toggleSign"
+                >
+                    ±
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#3a4159] font-sans text-[15px] sm:text-[16px] font-semibold text-[#d7dae6] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#454e69] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="setOperator('%')"
+                >
+                    %
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    :class="{ 'bg-orange-400/16': isOperatorActive('/') }"
+                    @click="setOperator('/')"
+                >
+                    ÷
+                </button>
 
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('7')">7</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('8')">8</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('9')">9</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': isOperatorActive('*') }" @click="setOperator('*')">×</button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDigit('7')"
+                >
+                    7
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDigit('8')"
+                >
+                    8
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDigit('9')"
+                >
+                    9
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    :class="{ 'bg-orange-400/16': isOperatorActive('*') }"
+                    @click="setOperator('*')"
+                >
+                    ×
+                </button>
 
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('4')">4</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('5')">5</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('6')">6</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': isOperatorActive('-') }" @click="setOperator('-')">−</button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDigit('4')"
+                >
+                    4
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDigit('5')"
+                >
+                    5
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDigit('6')"
+                >
+                    6
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    :class="{ 'bg-orange-400/16': isOperatorActive('-') }"
+                    @click="setOperator('-')"
+                >
+                    −
+                </button>
 
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('1')">1</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('2')">2</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('3')">3</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" :class="{ 'bg-orange-400/16': isOperatorActive('+') }" @click="setOperator('+')">+</button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDigit('1')"
+                >
+                    1
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDigit('2')"
+                >
+                    2
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDigit('3')"
+                >
+                    3
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-transparent font-mono text-[20px] sm:text-[22px] text-orange-400 transition duration-[60ms] hover:bg-orange-400/10 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    :class="{ 'bg-orange-400/16': isOperatorActive('+') }"
+                    @click="setOperator('+')"
+                >
+                    +
+                </button>
 
-                <button class="col-span-2 h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDigit('0')">0</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="inputDecimal">.</button>
-                <button class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-gradient-to-br from-[#ffa05e] to-[#ff8a3d] font-mono text-[18px] sm:text-[19px] font-bold text-[#1a1206] shadow-[0_4px_14px_-2px_rgba(255,138,61,0.5)] transition duration-[60ms] hover:brightness-105 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="calculateResult">=</button>
+                <button
+                    class="col-span-2 h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDigit('0')"
+                >
+                    0
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-[#2b3040] font-mono text-[18px] sm:text-[19px] font-medium text-[#f4efe4] shadow-[0_2px_0_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.03)] transition duration-[60ms] hover:bg-[#333a4c] active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="inputDecimal"
+                >
+                    .
+                </button>
+                <button
+                    class="h-[52px] sm:h-[58px] rounded-xl border border-transparent bg-gradient-to-br from-[#ffa05e] to-[#ff8a3d] font-mono text-[18px] sm:text-[19px] font-bold text-[#1a1206] shadow-[0_4px_14px_-2px_rgba(255,138,61,0.5)] transition duration-[60ms] hover:brightness-105 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    @click="calculateResult"
+                >
+                    =
+                </button>
             </div>
         </div>
 
         <div ref="tapeSection" class="mt-3.5">
-            <button class="flex w-full items-center justify-between rounded-xl bg-[#1d212c] px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#868ba3] transition duration-150 hover:bg-[#252a37] hover:text-[#f4efe4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent" @click="toggleHistory">
+            <button
+                class="flex w-full items-center justify-between rounded-xl bg-[#1d212c] px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#868ba3] transition duration-150 hover:bg-[#252a37] hover:text-[#f4efe4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                @click="toggleHistory"
+            >
                 <span>Tape ({{ history.length }})</span>
-                <span class="font-mono text-[15px]">{{ historyOpen ? '−' : '+' }}</span>
+                <span class="font-mono text-[15px]">{{
+                    historyOpen ? '−' : '+'
+                }}</span>
             </button>
 
             <template v-if="historyOpen">
-                <div class="mt-0.5 max-h-[260px] overflow-y-auto rounded-b-[10px] rounded-t-[2px] bg-[#efe7d5] bg-[repeating-linear-gradient(0deg,rgba(0,0,0,0.028)_0px,rgba(0,0,0,0.028)_1px,transparent_1px,transparent_5px)] px-1 py-[6px] pb-[10px] [clip-path:polygon(0%_0%,4%_3%,8%_0%,12%_3%,16%_0%,20%_3%,24%_0%,28%_3%,32%_0%,36%_3%,40%_0%,44%_3%,48%_0%,52%_3%,56%_0%,60%_3%,64%_0%,68%_3%,72%_0%,76%_3%,80%_0%,84%_3%,88%_0%,92%_3%,96%_0%,100%_3%,100%_100%,0%_100%)]">
+                <div
+                    class="mt-0.5 max-h-[260px] overflow-y-auto rounded-b-[10px] rounded-t-[2px] bg-[#efe7d5] bg-[repeating-linear-gradient(0deg,rgba(0,0,0,0.028)_0px,rgba(0,0,0,0.028)_1px,transparent_1px,transparent_5px)] px-1 py-[6px] pb-[10px] [clip-path:polygon(0%_0%,4%_3%,8%_0%,12%_3%,16%_0%,20%_3%,24%_0%,28%_3%,32%_0%,36%_3%,40%_0%,44%_3%,48%_0%,52%_3%,56%_0%,60%_3%,64%_0%,68%_3%,72%_0%,76%_3%,80%_0%,84%_3%,88%_0%,92%_3%,96%_0%,100%_3%,100%_100%,0%_100%)]"
+                >
                     <div
                         v-for="item in history"
                         :key="item.id"
@@ -248,11 +372,20 @@ onBeforeUnmount(() => {
                         @click="recallFromHistory(item)"
                         title="Click to reuse this result"
                     >
-                        <div class="text-[12px] text-[#7a705c]">{{ item.expression }}</div>
-                        <div class="text-right text-[16px] font-semibold text-[#332b1f]">= {{ item.result }}</div>
+                        <div class="text-[12px] text-[#7a705c]">
+                            {{ item.expression }}
+                        </div>
+                        <div
+                            class="text-right text-[16px] font-semibold text-[#332b1f]"
+                        >
+                            = {{ item.result }}
+                        </div>
                     </div>
 
-                    <div v-if="!history.length" class="px-4 py-5 text-center text-[13px] text-[#7a705c]">
+                    <div
+                        v-if="!history.length"
+                        class="px-4 py-5 text-center text-[13px] text-[#7a705c]"
+                    >
                         Nothing on the tape yet
                     </div>
                 </div>

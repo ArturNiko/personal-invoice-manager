@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import InputLabel from "./InputLabel.vue"
+import InputLabel from './InputLabel.vue';
 
 const props = defineProps<{
-    modelValue: string
-    label: string
-    required?: boolean
-    disabled?: boolean
-}>()
+    modelValue: string;
+    label: string;
+    required?: boolean;
+    disabled?: boolean;
+}>();
 
 const emit = defineEmits<{
-    "update:modelValue": [value: string]
-}>()
+    'update:modelValue': [value: string];
+}>();
 
 const handleInput = (event: Event) => {
-    emit("update:modelValue", (event.target as HTMLInputElement).value)
-}
+    emit('update:modelValue', (event.target as HTMLInputElement).value);
+};
 </script>
 
 <template>
@@ -31,11 +31,11 @@ const handleInput = (event: Event) => {
 </template>
 
 <style scoped>
-input[type="date"] {
+input[type='date'] {
     color-scheme: dark;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type='date']::-webkit-calendar-picker-indicator {
     opacity: 0.75;
     cursor: pointer;
 }
