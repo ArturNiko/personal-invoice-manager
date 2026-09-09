@@ -30,7 +30,7 @@ class ProcessInvoice implements ShouldQueue
     {
         $invoiceImport = InvoiceImport::find($this->invoiceImportId);
 
-        if (! $invoiceImport) {
+        if (!$invoiceImport) {
             Log::warning('Invoice import not found.', [
                 'invoice_import_id' => $this->invoiceImportId,
             ]);

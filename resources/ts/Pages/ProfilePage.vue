@@ -3,16 +3,21 @@ import axios from 'axios';
 import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
+import InputSelect from '@/Components/Form/InputSelect.vue';
+import { updateAppCurrency } from '@/Composables/useAppSettings';
+import { currencyOptions } from '@/Utils/Consts';
+
 const router = useRouter();
 const csrfToken =
     document.head
         .querySelector('meta[name="csrf-token"]')
         ?.getAttribute('content') ?? '';
 
-const user = ref({ name: '', email: '', email_verified: true });
+const user = ref({ name: '', email: '', currency: 'EUR', email_verified: true });
 
 const name = ref('');
 const email = ref('');
+const currency = ref('EUR');
 const currentPassword = ref('');
 const newPassword = ref('');
 const newPasswordConfirmation = ref('');
@@ -21,6 +26,10 @@ const deletePassword = ref('');
 const profileErrors = ref<Record<string, string[]>>({});
 const profileSuccess = ref('');
 const profileLoading = ref(false);
+
+const preferencesErrors = ref<Record<string, string[]>>({});
+const preferencesSuccess = ref('');
+const preferencesLoading = ref(false);
 
 const passwordErrors = ref<Record<string, string[]>>({});
 const passwordSuccess = ref('');
@@ -41,7 +50,9 @@ const csrf =
 
 async function fetchProfile() {
     try {
-        const res = await fetch('/profile');
+        const res = await fetch('/profile', {
+            headers: { Accept: 'application/json' },
+        });
         if (res.status === 401) {
             router.push('/login');
             return;
@@ -50,6 +61,7 @@ async function fetchProfile() {
         user.value = data.user;
         name.value = data.user.name;
         email.value = data.user.email;
+        currency.value = data.user.currency ?? 'EUR';
     } catch {
         router.push('/login');
     }
@@ -88,27 +100,79 @@ async function updateProfile() {
         const res = await fetch('/profile', {
             method: 'PUT',
             headers: {
+                Accept: 'application/json',
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrf,
             },
             body: JSON.stringify({ name: name.value, email: email.value }),
         });
+
         if (res.status === 422) {
             const data = await res.json();
             profileErrors.value = data.errors ?? {};
             return;
         }
+
         if (!res.ok) {
             profileErrors.value = { email: ['Failed to update profile.'] };
             return;
         }
+
         const data = await res.json();
         user.value = data.user;
         profileSuccess.value = 'Profile updated.';
-    } catch {
+    } 
+    catch {
         profileErrors.value = { email: ['Network error.'] };
-    } finally {
+    } 
+    finally {
         profileLoading.value = false;
+    }
+}
+
+async function updatePreferences() {
+    preferencesErrors.value = {};
+    preferencesSuccess.value = '';
+    preferencesLoading.value = true;
+    try {
+        const res = await fetch('/profile', {
+            method: 'PUT',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+            },
+            body: JSON.stringify({
+                name: name.value,
+                email: email.value,
+                currency: currency.value,
+            }),
+        });
+
+        if (res.status === 422) {
+            const data = await res.json();
+            preferencesErrors.value = data.errors ?? {};
+            return;
+        }
+
+        if (!res.ok) {
+            preferencesErrors.value = {
+                currency: ['Failed to update preferences.'],
+            };
+            return;
+        }
+
+        const data = await res.json();
+        user.value = data.user;
+        currency.value = data.user.currency ?? currency.value;
+        updateAppCurrency(data.user.currency ?? currency.value);
+        preferencesSuccess.value = 'Preferences updated.';
+    } 
+    catch {
+        preferencesErrors.value = { currency: ['Network error.'] };
+    } 
+    finally {
+        preferencesLoading.value = false;
     }
 }
 
@@ -120,6 +184,7 @@ async function updatePassword() {
         const res = await fetch('/profile/password', {
             method: 'PUT',
             headers: {
+                Accept: 'application/json',
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrf,
             },
@@ -129,11 +194,13 @@ async function updatePassword() {
                 password_confirmation: newPasswordConfirmation.value,
             }),
         });
+       
         if (res.status === 422) {
             const data = await res.json();
             passwordErrors.value = data.errors ?? {};
             return;
         }
+        
         if (!res.ok) {
             passwordErrors.value = {
                 current_password: ['Failed to update password.'],
@@ -144,9 +211,11 @@ async function updatePassword() {
         currentPassword.value = '';
         newPassword.value = '';
         newPasswordConfirmation.value = '';
-    } catch {
+    } 
+    catch {
         passwordErrors.value = { current_password: ['Network error.'] };
-    } finally {
+    } 
+    finally {
         passwordLoading.value = false;
     }
 }
@@ -159,6 +228,7 @@ async function deleteAccount() {
         const res = await fetch('/profile', {
             method: 'DELETE',
             headers: {
+                Accept: 'application/json',
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrf,
             },
@@ -317,6 +387,60 @@ onMounted(fetchProfile);
                                     profileLoading
                                         ? 'Saving...'
                                         : 'Save Changes'
+                                }}
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <div class="h-px w-full bg-white/10"></div>
+
+                <section class="space-y-4">
+                    <h3
+                        class="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300/80"
+                    >
+                        Preferences
+                    </h3>
+                    <p class="text-sm text-slate-400">
+                        Dashboard totals and the forecast are converted into
+                        this currency.
+                    </p>
+
+                    <div
+                        v-if="preferencesSuccess"
+                        class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
+                    >
+                        {{ preferencesSuccess }}
+                    </div>
+
+                    <form
+                        @submit.prevent="updatePreferences"
+                        class="space-y-4"
+                    >
+                        <div>
+                            <InputSelect
+                                v-model="currency"
+                                label="Preferred Currency"
+                                :options="currencyOptions"
+                            />
+                            <p
+                                v-if="preferencesErrors.currency"
+                                class="mt-1.5 text-xs text-red-400"
+                            >
+                                {{ preferencesErrors.currency[0] }}
+                            </p>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button
+                                type="submit"
+                                :disabled="preferencesLoading"
+                                class="rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
+                            >
+                                {{
+                                    preferencesLoading
+                                        ? 'Saving...'
+                                        : 'Save Preferences'
                                 }}
                             </button>
                         </div>

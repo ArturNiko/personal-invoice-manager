@@ -6,6 +6,7 @@ import Icon from '@/Components/Icon.vue';
 import Widget from '@/Components/Widget.vue';
 import Calculator from '@/Widgets/Calculator.vue';
 import { useInvoices } from '@/Composables/useInvoices';
+import { loadAppSettings } from '@/Composables/useAppSettings';
 
 const route = useRoute();
 const isCompactView = ref(false);
@@ -37,6 +38,7 @@ const activeViewLabel = computed(() =>
 );
 
 onMounted(() => {
+    void loadAppSettings();
     updateCalendarView();
     window.addEventListener('resize', updateCalendarView);
 });

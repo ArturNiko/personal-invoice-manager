@@ -5,9 +5,18 @@ import { useRouter } from 'vue-router';
 
 import Badge from '@/Components/Badge.vue';
 import Tooltip from '@/Components/Tooltip.vue';
+import DashboardStatCard from '@/Components/DashboardStatCard.vue';
+import ForecastChart from '@/Widgets/ForecastChart.vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import {
+    buildMonthlyForecast,
+    buildUpcomingItems,
+    computeDashboardStats,
+    formatAmountWithSymbol,
+    type UpcomingItem,
+} from '@/Utils/Forecast';
 
 import type { CalendarOptions } from '@fullcalendar/core';
 import type {
@@ -21,6 +30,7 @@ import {
     type InvoiceEvent,
 } from '@/Types/Invoice';
 import { useInvoices } from '@/Composables/useInvoices';
+import { useAppSettings } from '@/Composables/useAppSettings';
 
 type CalendarDateClickArg = {
     dateStr: string;
@@ -30,10 +40,80 @@ type CalendarDateClickArg = {
 
 const router = useRouter();
 const { invoices, fetchInvoices } = useInvoices();
+const { appCurrency, appCurrencySymbol, loadAppSettings } = useAppSettings();
 const isCompactView = ref(false);
 const tooltipDate = ref('');
 const tooltip = ref<InstanceType<typeof Tooltip> | null>(null);
 const calendarRef = ref<InstanceType<typeof FullCalendar> | null>(null);
+const forecastRange = ref(6);
+
+const forecastMonths = computed(() =>
+    buildMonthlyForecast(invoices.value, forecastRange.value, appCurrency.value),
+);
+
+const upcomingItems = computed(() =>
+    buildUpcomingItems(invoices.value, 6, appCurrency.value),
+);
+
+const dashboardStats = computed(() =>
+    computeDashboardStats(invoices.value, appCurrency.value),
+);
+
+const statsDisplay = computed(() => {
+    const stats = dashboardStats.value;
+
+    return {
+        dueThisMonth: formatAmountWithSymbol(
+            stats.dueThisMonth,
+            stats.currency,
+        ),
+        overdue: formatAmountWithSymbol(stats.overdueTotal, stats.currency),
+        recurring: formatAmountWithSymbol(
+            stats.recurringCommitment,
+            stats.currency,
+        ),
+    };
+});
+
+const setForecastRange = (months: number) => {
+    forecastRange.value = months;
+};
+
+const goToMonth = (key: string) => {
+    const api = calendarRef.value?.getApi();
+
+    if (!api) return;
+
+    const [year, month] = key.split('-').map(Number);
+
+    api.changeView('dayGridMonth');
+    api.gotoDate(new Date(year, month - 1, 1));
+};
+
+const formatUpcomingDate = (dateKey: string) => {
+    const [year, month, day] = dateKey.split('-').map(Number);
+
+    return new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+    }).format(new Date(year, month - 1, day));
+};
+
+const formatUpcomingAmount = (item: UpcomingItem) => {
+    return `${getCurrencySymbol(item.currency)}${item.amount.toLocaleString(
+        'en-US',
+        { maximumFractionDigits: 2 },
+    )}`;
+};
+
+const getUpcomingTypeLabel = (type: InvoiceTypes) => {
+    return type === InvoiceTypes.RECURRING ? 'Recurring' : 'One-time';
+};
+
+const getUpcomingTypeVariant = (type: InvoiceTypes) => {
+    return type === InvoiceTypes.RECURRING ? 'teal' : 'sky';
+};
 
 const updateCalendarView = () => {
     const width = window.innerWidth;
@@ -262,6 +342,7 @@ const calendarOptions = computed<CalendarOptions>(() => ({
 }));
 
 onMounted(() => {
+    void loadAppSettings();
     void fetchInvoices();
     updateCalendarView();
     window.addEventListener('resize', updateCalendarView);
@@ -278,9 +359,31 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <section
-        class="calendar-shell relative flex h-full min-h-[38rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
-    >
+    <div class="space-y-5">
+        <section class="grid gap-4 sm:grid-cols-3">
+            <DashboardStatCard
+                label="Due this month"
+                :value="statsDisplay.dueThisMonth"
+                hint="Pending payments due in the current month."
+                tone="sky"
+            />
+            <DashboardStatCard
+                label="Overdue"
+                :value="statsDisplay.overdue"
+                hint="Payments past their due date that need attention."
+                tone="rose"
+            />
+            <DashboardStatCard
+                label="Recurring commitments"
+                :value="statsDisplay.recurring"
+                hint="Committed recurring outflow on autopilot."
+                tone="teal"
+            />
+        </section>
+
+        <section
+            class="calendar-shell relative flex h-full min-h-[38rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
+        >
         <div
             class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6"
         >
@@ -326,7 +429,131 @@ onUnmounted(() => {
                 </p>
             </div>
         </Tooltip>
-    </section>
+        </section>
+
+        <section
+            class="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl sm:p-6"
+        >
+            <div
+                class="flex flex-col gap-3 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between sm:pb-5"
+            >
+                <div>
+                    <p
+                        class="text-xs uppercase tracking-[0.28em] text-cyan-300/70"
+                    >
+                        Forecast
+                    </p>
+                    <h2 class="mt-1 text-lg font-semibold text-white">
+                        Upcoming payments
+                    </h2>
+                    <p class="mt-1 text-sm text-slate-400">
+                        Monthly outflow split into committed recurring and
+                        flexible one-time payments. Click a bar to jump the
+                        calendar to that month.
+                    </p>
+                </div>
+
+                <div class="flex shrink-0 items-center gap-2">
+                    <button
+                        type="button"
+                        class="rounded-xl border px-3 py-2 text-sm font-semibold transition"
+                        :class="
+                            forecastRange === 6
+                                ? 'border-white/10 bg-white text-slate-950'
+                                : 'border-white/10 bg-slate-900/80 text-slate-300 hover:bg-slate-800/80'
+                        "
+                        @click="setForecastRange(6)"
+                    >
+                        6 months
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-xl border px-3 py-2 text-sm font-semibold transition"
+                        :class="
+                            forecastRange === 12
+                                ? 'border-white/10 bg-white text-slate-950'
+                                : 'border-white/10 bg-slate-900/80 text-slate-300 hover:bg-slate-800/80'
+                        "
+                        @click="setForecastRange(12)"
+                    >
+                        12 months
+                    </button>
+                </div>
+            </div>
+
+            <div class="pt-5">
+                <ForecastChart
+                    :forecast="forecastMonths"
+                    :currency-symbol="appCurrencySymbol"
+                    @select-month="goToMonth"
+                />
+            </div>
+        </section>
+
+        <section
+            class="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl sm:p-6"
+        >
+            <div class="border-b border-white/10 pb-4 sm:pb-5">
+                <p
+                    class="text-xs uppercase tracking-[0.28em] text-cyan-300/70"
+                >
+                    Upcoming
+                </p>
+                <h2 class="mt-1 text-lg font-semibold text-white">
+                    Recent & upcoming invoices
+                </h2>
+                <p class="mt-1 text-sm text-slate-400">
+                    Next expected payment dates for active invoices.
+                </p>
+            </div>
+
+            <div
+                v-if="upcomingItems.length"
+                class="divide-y divide-white/5"
+            >
+                <div
+                    v-for="item in upcomingItems"
+                    :key="`${item.id}-${item.dateKey}`"
+                    class="flex items-center justify-between gap-4 py-3 sm:py-4"
+                >
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold text-white">
+                            {{ item.title }}
+                        </p>
+                        <p class="mt-0.5 text-xs text-slate-400">
+                            {{ formatUpcomingDate(item.dateKey) }}
+                        </p>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-3">
+                        <Badge :variant="getUpcomingTypeVariant(item.type)">
+                            {{ getUpcomingTypeLabel(item.type) }}
+                        </Badge>
+                        <p
+                            class="whitespace-nowrap text-sm font-semibold text-white"
+                        >
+                            {{ formatUpcomingAmount(item) }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-else
+                class="flex min-h-[8rem] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-slate-950/20 p-6 text-center"
+            >
+                <div>
+                    <p
+                        class="text-xs uppercase tracking-[0.25em] text-slate-400"
+                    >
+                        No data yet
+                    </p>
+                    <p class="mt-2 text-sm text-slate-400">
+                        Add an invoice and upcoming payments will show up here.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
 </template>
 
 <style>

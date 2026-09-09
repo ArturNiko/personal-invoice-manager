@@ -3,6 +3,8 @@ import { computed, ref } from 'vue';
 
 import type { InvoiceIndexResponse, InvoiceEvent } from '@/Types/Invoice';
 import { getCurrencySymbol } from '@/Utils/Currency';
+import { convertAmount } from '@/Utils/ExchangeRates';
+import { appCurrency } from '@/Composables/useAppSettings';
 
 export type InvoiceQueryParams = Record<string, string | undefined>;
 
@@ -12,32 +14,29 @@ const error = ref<string | null>(null);
 const invoiceCount = computed(() => invoices.value.length);
 const totalAmount = computed(() =>
     invoices.value.reduce(
-        (sum, invoice) => sum + Number(invoice.price || 0),
+        (sum, invoice) =>
+            sum +
+            convertAmount(
+                Number(invoice.price || 0),
+                invoice.currency,
+                appCurrency.value,
+            ),
         0,
     ),
 );
-const totalCurrency = computed(() => {
-    if (!invoices.value.length) {
-        return null;
-    }
-
-    const [firstInvoice] = invoices.value;
-    const allSameCurrency = invoices.value.every(
-        (invoice) => invoice.currency === firstInvoice.currency,
-    );
-
-    return allSameCurrency ? firstInvoice.currency : null;
-});
+const totalCurrency = computed(() => appCurrency.value);
 const totalAmountDisplay = computed(() => {
     if (!invoices.value.length) {
         return '0';
     }
 
-    if (!totalCurrency.value) {
-        return `${totalAmount.value.toFixed(2)} mixed`;
-    }
-
-    return `${getCurrencySymbol(totalCurrency.value)}${totalAmount.value.toFixed(2)}`;
+    return `${getCurrencySymbol(totalCurrency.value)}${totalAmount.value.toLocaleString(
+        'en-US',
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        },
+    )}`;
 });
 
 export const buildInvoiceQuery = (

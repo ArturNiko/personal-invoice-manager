@@ -22,7 +22,7 @@ class AuthenticatedSessionController extends Controller
 
         $redirect = config('invoices.landing_path', '/calendar');
 
-        if (! $request->user()->hasVerifiedEmail()) {
+        if (!$request->user()->hasVerifiedEmail()) {
             $redirect .= '?verification=needed';
         }
 

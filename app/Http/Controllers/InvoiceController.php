@@ -10,13 +10,20 @@ use App\Http\Requests\InvoicesRequest;
 use App\Models\AgentTask;
 use App\Models\Invoice;
 use App\Services\Nanonets\NanonetsClient;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class InvoiceController extends Controller
 {
-    public function index(InvoiceIndexRequest $request)
+    public function index(InvoiceIndexRequest $request): JsonResponse|Response
     {
+        if (!$request->expectsJson()) {
+            return $this->spaShellResponse();
+        }
+
         $validated = $request->validated();
 
         $query = auth()->user()->invoices();
@@ -49,8 +56,12 @@ class InvoiceController extends Controller
         return response()->json($invoices);
     }
 
-    public function show(Invoice $invoice)
+    public function show(Request $request, Invoice $invoice): JsonResponse|Response
     {
+        if (!$request->expectsJson()) {
+            return $this->spaShellResponse();
+        }
+
         return response()->json($invoice);
     }
 
@@ -167,7 +178,7 @@ class InvoiceController extends Controller
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             $prediction = $nanonetsClient->fetchTaskResult($taskId);
 
-            if (! $nanonetsClient->isStillProcessing($prediction)) {
+            if (!$nanonetsClient->isStillProcessing($prediction)) {
                 return $prediction;
             }
 

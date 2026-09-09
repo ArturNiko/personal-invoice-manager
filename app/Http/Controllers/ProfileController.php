@@ -5,14 +5,19 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
 {
-    public function show(Request $request): JsonResponse
+    public function show(Request $request): JsonResponse|Response
     {
+        if (!$request->expectsJson()) {
+            return $this->spaShellResponse();
+        }
+
         $user = $request->user();
 
         return response()->json([
@@ -20,6 +25,7 @@ class ProfileController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'currency' => $user->currency,
                 'email_verified' => $user->hasVerifiedEmail(),
             ],
         ]);
@@ -41,6 +47,7 @@ class ProfileController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'currency' => $user->currency,
                 'email_verified' => $user->hasVerifiedEmail(),
             ],
         ]);

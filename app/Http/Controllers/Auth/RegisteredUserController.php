@@ -39,7 +39,7 @@ class RegisteredUserController extends Controller
 
         $redirect = config('invoices.landing_path', '/calendar');
 
-        if (! $user->hasVerifiedEmail()) {
+        if (!$user->hasVerifiedEmail()) {
             $redirect .= '?verification=needed';
         }
 

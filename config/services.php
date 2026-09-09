@@ -38,7 +38,7 @@ return [
     'nanonets' => [
         'api_key' => env('NANONETS_API_KEY'),
         'agent_id' => env('NANONETS_AGENT_ID'),
-        
+
         'base_url' => env('NANONETS_BASE_URL'),
         'agent_url' => env('NANONETS_AGENT_URL'),
         'agent_run_url' => env('NANONETS_AGENT_RUN_URL'),
@@ -47,9 +47,14 @@ return [
         'task_status_url' => env('NANONETS_TASK_STATUS_URL'),
         'task_result_url' => env('NANONETS_TASK_RESULT_URL'),
         'task_summary_url' => env('NANONETS_TASK_SUMMARY_URL'),
-        
+
         'validate_connection_on_boot' => env('NANONETS_VALIDATE_CONNECTION_ON_BOOT', false),
         'connection_check_cache_seconds' => (int) env('NANONETS_CONNECTION_CHECK_CACHE_SECONDS', 300),
+    ],
+
+    'exchange_rates' => [
+        'provider' => env('EXCHANGE_RATES_PROVIDER', 'https://open.er-api.com/v6/latest/EUR'),
+        'ttl_seconds' => (int) env('EXCHANGE_RATES_TTL_SECONDS', 86400),
     ],
 
 ];

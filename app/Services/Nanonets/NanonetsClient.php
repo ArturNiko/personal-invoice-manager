@@ -155,7 +155,7 @@ class NanonetsClient
                 continue;
             }
 
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 Log::warning('Nanonets agent result poll returned non-successful response.', [
                     'request_metadata' => $requestMetadata,
                     'task_id' => $taskId,
@@ -221,7 +221,7 @@ class NanonetsClient
 
     protected function isFinalAgentPayload(array $payload): bool
     {
-        return ! $this->looksLikeTaskEnvelope($payload)
+        return !$this->looksLikeTaskEnvelope($payload)
             && (
                 $this->looksLikeStructuredPayload($payload)
                 || isset($payload['prediction'])
@@ -311,7 +311,7 @@ class NanonetsClient
     {
         $value = $item['ocr_text'] ?? $item['text'] ?? null;
 
-        if (! is_string($value)) {
+        if (!is_string($value)) {
             return null;
         }
 
@@ -353,9 +353,9 @@ class NanonetsClient
     {
         return array_key_exists('task_id', $payload)
             && array_key_exists('status', $payload)
-            && ! array_key_exists('prediction', $payload)
-            && ! array_key_exists('result', $payload)
-            && ! array_key_exists('data', $payload);
+            && !array_key_exists('prediction', $payload)
+            && !array_key_exists('result', $payload)
+            && !array_key_exists('data', $payload);
     }
 
     protected function selectPriceValue(array $fields, string $type): mixed
@@ -409,7 +409,7 @@ class NanonetsClient
     {
         $currency = strtoupper(trim((string) $value));
 
-        if ($currency === '' || ! InvoiceCurrency::isValid($currency)) {
+        if ($currency === '' || !InvoiceCurrency::isValid($currency)) {
             return config('invoices.default_currency', InvoiceCurrency::EUR->value);
         }
 
@@ -420,7 +420,7 @@ class NanonetsClient
     {
         $status = strtolower(trim((string) $value));
 
-        if ($status === '' || ! InvoiceStatus::isValid($status)) {
+        if ($status === '' || !InvoiceStatus::isValid($status)) {
             return InvoiceStatus::PENDING->value;
         }
 
@@ -489,7 +489,7 @@ class NanonetsClient
 
         if (str_contains($raw, ',') && str_contains($raw, '.')) {
             $raw = str_replace(',', '', $raw);
-        } elseif (str_contains($raw, ',') && ! str_contains($raw, '.')) {
+        } elseif (str_contains($raw, ',') && !str_contains($raw, '.')) {
             $raw = str_replace(',', '.', $raw);
         }
 

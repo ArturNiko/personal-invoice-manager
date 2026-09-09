@@ -86,7 +86,7 @@ class AppServiceProvider extends ServiceProvider
             );
         }
 
-        if (! $response->successful()) {
+        if (!$response->successful()) {
             throw new InvalidArgumentException(
                 sprintf(
                     'Nanonets connection check failed for "%s" with HTTP %d.',
