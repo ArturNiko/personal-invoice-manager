@@ -15,7 +15,7 @@ class ProfileController extends Controller
     public function show(Request $request): JsonResponse|Response
     {
         if (!$request->expectsJson()) {
-            return $this->spaShellResponse();
+            return response()->view('app');
         }
 
         $user = $request->user();

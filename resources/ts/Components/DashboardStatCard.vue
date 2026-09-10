@@ -43,12 +43,12 @@ const hintClasses: Record<NonNullable<typeof props.tone>, string> = {
 };
 
 const cardClasses = computed(() => [
-    'flex flex-col justify-between gap-4 rounded-2xl border p-4 backdrop-blur',
+    'flex flex-col justify-between gap-2 rounded-2xl border p-2 backdrop-blur sm:gap-4 sm:p-4',
     toneClasses[props.tone],
 ]);
 
 const iconBoxClasses = computed(() => [
-    'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border',
+    'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border sm:h-10 sm:w-10',
     toneClasses[props.tone],
 ]);
 </script>
@@ -58,22 +58,31 @@ const iconBoxClasses = computed(() => [
         <div class="flex items-start justify-between gap-3">
             <p
                 :class="[
-                    'text-xs font-semibold uppercase tracking-[0.22em]',
+                    'text-[9px] font-semibold uppercase tracking-[0.1em] sm:text-xs sm:tracking-[0.22em]',
                     labelClasses[tone],
                 ]"
             >
                 {{ label }}
             </p>
-            <div v-if="icon" :class="iconBoxClasses">
-                <Icon :icon="icon" theme="dark" class="h-5 w-5" />
+            <div v-if="icon" :class="iconBoxClasses" class="hidden sm:flex">
+                <Icon
+                    :icon="icon"
+                    theme="dark"
+                    class="h-5 w-5"
+                />
             </div>
         </div>
 
         <div>
-            <p class="text-2xl font-semibold text-white sm:text-3xl">
+            <p
+                class="text-base font-semibold text-white sm:text-2xl lg:text-3xl"
+            >
                 {{ value }}
             </p>
-            <p v-if="hint" :class="['mt-1 text-sm', hintClasses[tone]]">
+            <p
+                v-if="hint"
+                :class="['mt-1 hidden text-xs sm:block sm:text-sm', hintClasses[tone]]"
+            >
                 {{ hint }}
             </p>
         </div>

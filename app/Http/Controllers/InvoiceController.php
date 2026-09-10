@@ -20,8 +20,8 @@ class InvoiceController extends Controller
 {
     public function index(InvoiceIndexRequest $request): JsonResponse|Response
     {
-        if (!$request->expectsJson()) {
-            return $this->spaShellResponse();
+        if (! $request->expectsJson()) {
+            return response()->view('app');
         }
 
         $validated = $request->validated();
@@ -59,7 +59,7 @@ class InvoiceController extends Controller
     public function show(Request $request, Invoice $invoice): JsonResponse|Response
     {
         if (!$request->expectsJson()) {
-            return $this->spaShellResponse();
+            return response()->view('app');
         }
 
         return response()->json($invoice);

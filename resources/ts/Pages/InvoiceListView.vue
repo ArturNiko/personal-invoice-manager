@@ -213,15 +213,16 @@ watch(
                     <input
                         v-model="searchQuery"
                         type="search"
-                        placeholder="Search invoices by title, amount, type, currency..."
+                        placeholder="Search invoices..."
                         class="w-full rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/50 focus:bg-slate-950/70"
                     />
                 </label>
 
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden lg:flex-wrap lg:overflow-visible lg:pb-0">
                     <Button
                         :variant="typeFilter === 'all' ? 'solid' : 'outline'"
                         size="md"
+                        class="whitespace-nowrap"
                         @click="typeFilter = 'all'"
                     >
                         All
@@ -233,6 +234,7 @@ watch(
                                 : 'outline'
                         "
                         size="md"
+                        class="whitespace-nowrap"
                         @click="typeFilter = InvoiceTypes.ONE_TIME"
                     >
                         One-time
@@ -244,6 +246,7 @@ watch(
                                 : 'outline'
                         "
                         size="md"
+                        class="whitespace-nowrap"
                         @click="typeFilter = InvoiceTypes.RECURRING"
                     >
                         Recurring
@@ -251,13 +254,13 @@ watch(
                     <Button
                         variant="outline"
                         size="md"
+                        class="whitespace-nowrap"
                         @click="toggleSortDirection"
                     >
-                        Sort:
                         {{
                             sortDirection === 'ascending'
-                                ? 'Soonest first'
-                                : 'Latest first'
+                                ? 'Soonest'
+                                : 'Latest'
                         }}
                     </Button>
                 </div>
@@ -273,72 +276,59 @@ watch(
                     <article
                         v-for="invoice in visibleInvoices"
                         :key="invoice.id"
-                        class="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40 p-3 transition hover:border-cyan-400/40 hover:bg-slate-950/60 sm:p-4"
+                        class="overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-950/40 p-3 shadow-[0_8px_18px_rgba(2,6,23,0.12)] transition hover:border-white/20 hover:bg-slate-950/55 sm:p-4"
                     >
-                        <div
-                            class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                            <div class="min-w-0">
-                                <p
-                                    class="truncate text-sm font-semibold text-white sm:text-base"
-                                >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-semibold text-white sm:text-base">
                                     {{ invoice.title }}
                                 </p>
-                                <p class="text-xs text-slate-400 sm:text-sm">
-                                    ID #{{ invoice.id }}
-                                </p>
+                                <div class="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400 sm:text-xs">
+                                    <span>Due {{ formatDate(invoice.start_date) }}</span>
+                                    <span class="text-slate-600">•</span>
+                                    <span>ID #{{ invoice.id }}</span>
+                                </div>
                             </div>
-                            <div class="text-left sm:text-right">
-                                <p
-                                    class="text-base font-semibold text-white sm:text-lg"
-                                >
+
+                            <div class="text-right">
+                                <p class="text-base font-semibold text-white sm:text-lg">
                                     {{ formatAmount(invoice) }}
-                                </p>
-                                <p class="text-xs text-slate-400 sm:text-sm">
-                                    {{ formatDate(invoice.start_date) }}
                                 </p>
                             </div>
                         </div>
 
-                        <div
-                            class="mt-4 flex flex-col gap-3 text-xs uppercase tracking-[0.16em] sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:tracking-[0.2em]"
-                        >
+                        <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
                             <div class="flex flex-wrap items-center gap-2">
                                 <Badge :variant="getTypeVariant(invoice.type)">
                                     {{ getTypeLabel(invoice.type) }}
                                 </Badge>
-                                <Badge
-                                    :variant="getStatusVariant(invoice.status)"
-                                >
+                                <Badge :variant="getStatusVariant(invoice.status)">
                                     {{ getStatusLabel(invoice.status) }}
                                 </Badge>
                             </div>
-                            <div
-                                class="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center"
-                            >
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    class="w-full sm:w-auto"
+
+                            <div class="ml-auto flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    class="rounded-xl border border-slate-600 bg-slate-800/80 px-2.5 py-1.5 text-[11px] font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-700 sm:px-3 sm:text-xs"
                                     @click="editInvoice(invoice.id)"
                                 >
                                     Edit
-                                </Button>
-                                <Button
-                                    variant="danger"
-                                    size="sm"
-                                    class="w-full sm:w-auto"
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-2.5 py-1.5 text-[11px] font-medium text-rose-100 transition hover:bg-rose-500/20 sm:px-3 sm:text-xs"
                                     @click="promptDeleteInvoice(invoice)"
                                 >
                                     Delete
-                                </Button>
+                                </button>
                             </div>
                         </div>
                     </article>
                 </div>
 
                 <aside
-                    class="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-5"
+                    class="hidden rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-5 lg:block"
                 >
                     <p
                         class="text-xs uppercase tracking-[0.25em] text-slate-400"

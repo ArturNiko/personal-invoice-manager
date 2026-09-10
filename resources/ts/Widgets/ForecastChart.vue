@@ -1,7 +1,30 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import {
+    BarController,
+    BarElement,
+    CategoryScale,
+    Chart,
+    Filler,
+    Legend,
+    LinearScale,
+    Tooltip,
+    type ActiveElement,
+    type ChartConfiguration,
+    type ChartEvent,
+} from 'chart.js';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import type { MonthlyForecast } from '@/Utils/Forecast';
+
+Chart.register(
+    BarController,
+    BarElement,
+    CategoryScale,
+    LinearScale,
+    Tooltip,
+    Legend,
+    Filler,
+);
 
 const props = withDefaults(
     defineProps<{
@@ -17,20 +40,12 @@ const emit = defineEmits<{
     selectMonth: [key: string];
 }>();
 
-const maxTotal = computed(() => {
-    return Math.max(
-        ...props.forecast.map((month) => month.total),
-        0,
-    );
-});
+const canvasRef = ref<HTMLCanvasElement | null>(null);
+let chart: Chart<'bar'> | null = null;
 
-const segmentHeight = (value: number) => {
-    if (!value || maxTotal.value <= 0) return '0%';
-
-    const percent = (value / maxTotal.value) * 100;
-
-    return `${Math.max(percent, 3)}%`;
-};
+const hasData = computed(() =>
+    props.forecast.some((month) => month.total > 0),
+);
 
 const formatValue = (value: number) => {
     return `${props.currencySymbol}${value.toLocaleString('en-US', {
@@ -38,12 +53,143 @@ const formatValue = (value: number) => {
     })}`;
 };
 
-const isCurrentMonth = (key: string) => {
-    const today = new Date();
-    const currentKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+const formatAxisValue = (value: number) => {
+    const compact = new Intl.NumberFormat('en-US', {
+        notation: 'compact',
+        maximumFractionDigits: 1,
+    }).format(value);
 
-    return key === currentKey;
+    return `${compact} ${props.currencySymbol}`.trim();
 };
+
+const buildConfig = (): ChartConfiguration<'bar'> => ({
+    type: 'bar',
+    data: {
+        labels: props.forecast.map((month) => month.label),
+        datasets: [
+            {
+                label: 'Recurring',
+                data: props.forecast.map((month) => month.recurringTotal),
+                backgroundColor: '#2dd4bf',
+                hoverBackgroundColor: '#5eead4',
+                borderRadius: 5,
+                borderSkipped: true,
+                stack: 'total',
+            },
+            {
+                label: 'One-time',
+                data: props.forecast.map((month) => month.oneTimeTotal),
+                backgroundColor: '#38bdf8',
+                hoverBackgroundColor: '#7dd3fc',
+                borderRadius: 5,
+                borderSkipped: true,
+                stack: 'total',
+            },
+        ],
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 250 },
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+        color: '#94a3b8',
+        interaction: { mode: 'index', intersect: false },
+        onClick: (event: ChartEvent, elements: ActiveElement[]) => {
+            if (!elements.length) return;
+
+            const index = elements[0].index;
+            const month = props.forecast[index];
+
+            if (month) emit('selectMonth', month.key);
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(15,23,42,0.95)',
+                titleColor: '#f1f5f9',
+                bodyColor: '#cbd5e1',
+                borderColor: 'rgba(255,255,255,0.1)',
+                borderWidth: 1,
+                padding: 12,
+                cornerRadius: 10,
+                boxWidth: 10,
+                boxHeight: 10,
+                usePointStyle: true,
+                callbacks: {
+                    label: (context) =>
+                        `${context.dataset.label}: ${formatValue(
+                            context.parsed.y,
+                        )}`,
+                    afterBody: (items) => {
+                        const index = items[0]?.dataIndex;
+
+                        if (index === undefined) return '';
+
+                        const month = props.forecast[index];
+
+                        return month
+                            ? `Total: ${formatValue(month.total)}`
+                            : '';
+                    },
+                },
+            },
+        },
+        scales: {
+            x: {
+                stacked: true,
+                grid: { display: false },
+                border: { display: false },
+                ticks: {
+                    color: '#64748b',
+                    font: { size: 11, weight: 600 },
+                },
+            },
+            y: {
+                stacked: true,
+                beginAtZero: true,
+                grid: { color: 'rgba(255,255,255,0.06)' },
+                border: { display: false },
+                ticks: {
+                    color: '#64748b',
+                    maxTicksLimit: 6,
+                    callback: (value) => formatAxisValue(Number(value)),
+                },
+            },
+        },
+    },
+});
+
+const updateChart = () => {
+    if (!chart) return;
+
+    chart.data.labels = props.forecast.map((month) => month.label);
+    chart.data.datasets[0].data = props.forecast.map(
+        (month) => month.recurringTotal,
+    );
+    chart.data.datasets[1].data = props.forecast.map(
+        (month) => month.oneTimeTotal,
+    );
+    chart.update();
+};
+
+onMounted(async () => {
+    await nextTick();
+
+    if (!canvasRef.value) return;
+
+    chart = new Chart<'bar'>(canvasRef.value, buildConfig());
+});
+
+watch(
+    () => [props.forecast, props.currencySymbol],
+    () => updateChart(),
+    { deep: true },
+);
+
+onBeforeUnmount(() => {
+    chart?.destroy();
+    chart = null;
+});
 </script>
 
 <template>
@@ -52,107 +198,26 @@ const isCurrentMonth = (key: string) => {
             <span
                 class="inline-flex items-center gap-2 text-xs font-medium text-slate-300"
             >
-                <span
-                    class="h-2.5 w-2.5 rounded-sm bg-gradient-to-t from-teal-500 to-teal-400"
-                ></span>
+                <span class="h-2.5 w-2.5 rounded-sm bg-teal-400"></span>
                 Recurring
             </span>
             <span
                 class="inline-flex items-center gap-2 text-xs font-medium text-slate-300"
             >
-                <span
-                    class="h-2.5 w-2.5 rounded-sm bg-gradient-to-t from-sky-600 to-sky-400"
-                ></span>
+                <span class="h-2.5 w-2.5 rounded-sm bg-sky-400"></span>
                 One-time
             </span>
         </div>
 
-        <div class="flex items-end gap-2 overflow-x-auto pb-1 sm:gap-3">
+        <div class="relative h-64 w-full">
+            <canvas ref="canvasRef"></canvas>
+
             <div
-                v-for="month in forecast"
-                :key="month.key"
-                class="group relative flex min-w-[2.5rem] flex-1 flex-col items-center"
+                v-if="!hasData"
+                class="pointer-events-none absolute inset-0 grid place-items-center text-sm text-slate-400"
             >
-                <div
-                    class="pointer-events-none absolute bottom-7 left-1/2 z-10 mb-2 w-40 -translate-x-1/2 rounded-xl border border-white/10 bg-slate-900/95 px-3 py-2 text-xs shadow-xl opacity-0 backdrop-blur transition duration-150 group-hover:opacity-100"
-                >
-                    <p class="font-semibold text-white">
-                        {{ formatValue(month.total) }}
-                        <span class="font-normal text-slate-400">total</span>
-                    </p>
-                    <p class="mt-1 flex items-center gap-1.5 text-slate-300">
-                        <span
-                            class="h-2 w-2 rounded-sm bg-teal-400"
-                        ></span>
-                        {{ formatValue(month.recurringTotal) }}
-                    </p>
-                    <p class="mt-0.5 flex items-center gap-1.5 text-slate-300">
-                        <span
-                            class="h-2 w-2 rounded-sm bg-sky-500"
-                        ></span>
-                        {{ formatValue(month.oneTimeTotal) }}
-                    </p>
-                </div>
-
-                <button
-                    type="button"
-                    class="flex h-40 w-full cursor-pointer items-end justify-center rounded-xl border border-transparent transition duration-150 group-hover:border-cyan-400/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
-                    :class="
-                        isCurrentMonth(month.key)
-                            ? 'border-white/15 bg-slate-950/40'
-                            : ''
-                    "
-                    :title="`View ${month.label} in calendar`"
-                    @click="emit('selectMonth', month.key)"
-                >
-                    <span
-                        class="flex h-full w-full flex-col justify-end overflow-hidden rounded-lg"
-                        :class="[
-                            month.total > 0
-                                ? 'shadow-[0_10px_25px_-10px_rgba(2,6,23,0.6)]'
-                                : '',
-                            isCurrentMonth(month.key)
-                                ? 'ring-1 ring-slate-300/20'
-                                : '',
-                        ]"
-                    >
-                        <span
-                            v-if="month.recurringTotal > 0"
-                            class="w-full bg-gradient-to-t from-teal-600 to-teal-400"
-                            :style="{ height: segmentHeight(month.recurringTotal) }"
-                        ></span>
-                        <span
-                            v-if="month.oneTimeTotal > 0"
-                            class="w-full bg-gradient-to-t from-sky-700 to-sky-400"
-                            :style="{ height: segmentHeight(month.oneTimeTotal) }"
-                        ></span>
-                    </span>
-                </button>
-
-                <span
-                    class="mt-2 text-[0.65rem] font-semibold uppercase tracking-[0.12em]"
-                    :class="
-                        isCurrentMonth(month.key)
-                            ? 'text-cyan-300'
-                            : 'text-slate-400'
-                    "
-                >
-                    {{ month.label }}
-                </span>
-                <span
-                    v-if="isCurrentMonth(month.key)"
-                    class="mt-0.5 text-[0.6rem] uppercase tracking-[0.12em] text-cyan-400/70"
-                >
-                    now
-                </span>
+                No upcoming payments in the forecast window.
             </div>
         </div>
-
-        <p
-            v-if="maxTotal === 0"
-            class="mt-4 text-center text-sm text-slate-400"
-        >
-            No upcoming payments in the forecast window.
-        </p>
     </div>
 </template>

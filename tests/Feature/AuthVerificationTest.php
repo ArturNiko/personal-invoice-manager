@@ -27,7 +27,7 @@ class AuthVerificationTest extends TestCase
             ->assertRedirect('/verify-email');
     }
 
-    public function test_successful_login_returns_calendar_redirect_for_verified_users(): void
+    public function test_successful_login_returns_dashboard_redirect_for_verified_users(): void
     {
         $user = User::factory()->create([
             'email' => 'user@example.com',
@@ -40,7 +40,7 @@ class AuthVerificationTest extends TestCase
             'password' => 'password123',
         ], ['Accept' => 'application/json'])
             ->assertOk()
-            ->assertJsonPath('redirect', '/calendar');
+            ->assertJsonPath('redirect', '/dashboard');
     }
 
     public function test_unverified_user_returns_verification_redirect_after_login(): void

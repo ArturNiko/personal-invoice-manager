@@ -48,9 +48,9 @@ export const router = createRouter({
             component: () => import('@/Pages/InvoiceEditView.vue'),
         },
         {
-            path: '/calendar',
-            name: 'calendar',
-            component: () => import('@/Pages/CalendarView.vue'),
+            path: '/dashboard',
+            name: 'dashboard',
+            component: () => import('@/Pages/DashboardView.vue'),
         },
         {
             path: '/list',
@@ -82,7 +82,7 @@ router.beforeEach((to, _, next) => {
     }
 
     if (isLoggedIn && isGuestRoute) {
-        next('/calendar');
+        next('/dashboard');
         return;
     }
 

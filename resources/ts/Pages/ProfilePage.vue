@@ -3,6 +3,7 @@ import axios from 'axios';
 import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
+import Button from '@/Components/Button.vue';
 import InputSelect from '@/Components/Form/InputSelect.vue';
 import { updateAppCurrency } from '@/Composables/useAppSettings';
 import { currencyOptions } from '@/Utils/Consts';
@@ -47,6 +48,27 @@ const csrf =
     document.head
         .querySelector('meta[name="csrf-token"]')
         ?.getAttribute('content') ?? '';
+
+const activeSection = ref('account');
+
+const inputBaseClass =
+    'w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2';
+const inputErrorClass =
+    'border-red-500/60 focus:border-red-400 focus:ring-red-500/40';
+const inputNormalClass =
+    'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40';
+const inputClass = (hasError: boolean) => [
+    inputBaseClass,
+    hasError ? inputErrorClass : inputNormalClass,
+];
+
+const scrollToSection = (id: string) => {
+    activeSection.value = id;
+    document.getElementById(id)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+    });
+};
 
 async function fetchProfile() {
     try {
@@ -121,11 +143,9 @@ async function updateProfile() {
         const data = await res.json();
         user.value = data.user;
         profileSuccess.value = 'Profile updated.';
-    } 
-    catch {
+    } catch {
         profileErrors.value = { email: ['Network error.'] };
-    } 
-    finally {
+    } finally {
         profileLoading.value = false;
     }
 }
@@ -167,11 +187,9 @@ async function updatePreferences() {
         currency.value = data.user.currency ?? currency.value;
         updateAppCurrency(data.user.currency ?? currency.value);
         preferencesSuccess.value = 'Preferences updated.';
-    } 
-    catch {
+    } catch {
         preferencesErrors.value = { currency: ['Network error.'] };
-    } 
-    finally {
+    } finally {
         preferencesLoading.value = false;
     }
 }
@@ -194,13 +212,13 @@ async function updatePassword() {
                 password_confirmation: newPasswordConfirmation.value,
             }),
         });
-       
+
         if (res.status === 422) {
             const data = await res.json();
             passwordErrors.value = data.errors ?? {};
             return;
         }
-        
+
         if (!res.ok) {
             passwordErrors.value = {
                 current_password: ['Failed to update password.'],
@@ -211,11 +229,9 @@ async function updatePassword() {
         currentPassword.value = '';
         newPassword.value = '';
         newPasswordConfirmation.value = '';
-    } 
-    catch {
+    } catch {
         passwordErrors.value = { current_password: ['Network error.'] };
-    } 
-    finally {
+    } finally {
         passwordLoading.value = false;
     }
 }
@@ -248,11 +264,9 @@ async function deleteAccount() {
 
         document.body.dataset.authenticated = '0';
         router.push('/login');
-    } 
-    catch {
+    } catch {
         deleteErrors.value = { password: ['Network error.'] };
-    } 
-    finally {
+    } finally {
         deleteLoading.value = false;
     }
 }
@@ -275,56 +289,120 @@ onMounted(fetchProfile);
 </script>
 
 <template>
-    <div class="mx-auto w-full max-w-7xl space-y-8 py-2">
-        <h2 class="text-xl font-semibold text-white">Profile Settings</h2>
+    <div class="mx-auto w-full max-w-6xl space-y-5 py-4 sm:space-y-6 sm:py-6">
+        <div class="flex items-end justify-between gap-4">
+            <div>
+                <h2 class="text-xl font-semibold text-white sm:text-2xl">
+                    Profile settings
+                </h2>
+                <p class="mt-1 text-sm text-slate-400">
+                    Manage your account details, preferences, and security.
+                </p>
+            </div>
+        </div>
+
+        <section
+            v-if="!isEmailVerified"
+            class="flex flex-col gap-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-5"
+        >
+            <div>
+                <p class="text-sm font-semibold text-red-300">
+                    Your email address is not verified yet.
+                </p>
+                <p
+                    v-if="verificationStatus"
+                    class="mt-1 text-sm text-red-200/90"
+                >
+                    {{ verificationStatus }}
+                </p>
+                <p v-else class="mt-1 text-sm text-red-200/80">
+                    You can still use the app, but verification helps keep your
+                    account secure.
+                </p>
+            </div>
+            <Button
+                variant="danger"
+                size="sm"
+                class="shrink-0"
+                :disabled="verificationLoading"
+                @click="resendVerificationEmail"
+            >
+                {{
+                    verificationLoading
+                        ? 'Sending...'
+                        : 'Resend verification email'
+                }}
+            </Button>
+        </section>
 
         <div
-            class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+            class="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start"
         >
-            <div class="space-y-8">
-                <section
-                    v-if="!isEmailVerified"
-                    class="rounded-2xl border border-red-500/30 bg-red-500/10 p-4"
+            <aside class="lg:sticky lg:top-6">
+                <nav
+                    class="flex gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/70 p-2 backdrop-blur-xl lg:flex-col lg:overflow-visible"
                 >
-                    <p class="text-sm font-semibold text-red-300">
-                        Your email address is not verified yet.
-                    </p>
-                    <p class="mt-1 text-sm text-red-200/80">
-                        You can still use the app, but verification helps keep
-                        your account secure.
-                    </p>
+                    <button
+                        v-for="item in [
+                            { id: 'account', label: 'Account' },
+                            { id: 'preferences', label: 'Preferences' },
+                            { id: 'security', label: 'Security' },
+                            { id: 'danger', label: 'Danger zone' },
+                        ]"
+                        :key="item.id"
+                        type="button"
+                        class="shrink-0 rounded-xl px-3 py-2.5 text-sm font-medium transition lg:shrink"
+                        :class="
+                            activeSection === item.id
+                                ? 'bg-white text-slate-950 shadow-sm shadow-slate-950/30'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                        "
+                        @click="scrollToSection(item.id)"
+                    >
+                        {{ item.label }}
+                    </button>
+                </nav>
 
-                    <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <button
-                            type="button"
-                            :disabled="verificationLoading"
-                            @click="resendVerificationEmail"
-                            class="rounded-xl bg-red-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-red-300 disabled:opacity-50"
+                <Button
+                    variant="outline"
+                    block
+                    class="mt-3 hidden lg:inline-flex"
+                    @click="logout"
+                >
+                    Log out
+                </Button>
+            </aside>
+
+            <div class="min-w-0 space-y-5 sm:space-y-6">
+                <section
+                    id="account"
+                    class="scroll-mt-28 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl shadow-slate-950/25 backdrop-blur-xl sm:p-5"
+                >
+                    <div>
+                        <p
+                            class="text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-300/70"
                         >
-                            {{ verificationLoading ? 'Sending...' : 'Resend verification email' }}
-                        </button>
-
-                        <p v-if="verificationStatus" class="text-sm text-red-200/90">
-                            {{ verificationStatus }}
+                            Account
+                        </p>
+                        <h3 class="mt-2 text-lg font-semibold text-white">
+                            Profile
+                        </h3>
+                        <p class="mt-1.5 text-sm text-slate-400">
+                            Your name and sign-in email address.
                         </p>
                     </div>
-                </section>
-
-                <section class="space-y-4">
-                    <h3
-                        class="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300/80"
-                    >
-                        Account Information
-                    </h3>
 
                     <div
                         v-if="profileSuccess"
-                        class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
+                        class="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
                     >
                         {{ profileSuccess }}
                     </div>
 
-                    <form @submit.prevent="updateProfile" class="space-y-4">
+                    <form
+                        @submit.prevent="updateProfile"
+                        class="mt-5 grid gap-4 sm:grid-cols-2"
+                    >
                         <div>
                             <label
                                 for="name"
@@ -336,12 +414,7 @@ onMounted(fetchProfile);
                                 v-model="name"
                                 type="text"
                                 required
-                                class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                                :class="
-                                    profileErrors.name
-                                        ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40'
-                                        : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'
-                                "
+                                :class="inputClass(!!profileErrors.name)"
                             />
                             <p
                                 v-if="profileErrors.name"
@@ -362,12 +435,7 @@ onMounted(fetchProfile);
                                 v-model="email"
                                 type="email"
                                 required
-                                class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                                :class="
-                                    profileErrors.email
-                                        ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40'
-                                        : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'
-                                "
+                                :class="inputClass(!!profileErrors.email)"
                             />
                             <p
                                 v-if="profileErrors.email"
@@ -377,50 +445,55 @@ onMounted(fetchProfile);
                             </p>
                         </div>
 
-                        <div class="flex justify-end">
-                            <button
+                        <div class="flex justify-end sm:col-span-2">
+                            <Button
                                 type="submit"
                                 :disabled="profileLoading"
-                                class="rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50 mt-4"
                             >
                                 {{
                                     profileLoading
                                         ? 'Saving...'
-                                        : 'Save Changes'
+                                        : 'Save changes'
                                 }}
-                            </button>
+                            </Button>
                         </div>
                     </form>
                 </section>
 
-                <div class="h-px w-full bg-white/10"></div>
-
-                <section class="space-y-4">
-                    <h3
-                        class="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300/80"
-                    >
-                        Preferences
-                    </h3>
-                    <p class="text-sm text-slate-400">
-                        Dashboard totals and the forecast are converted into
-                        this currency.
-                    </p>
+                <section
+                    id="preferences"
+                    class="scroll-mt-28 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl shadow-slate-950/25 backdrop-blur-xl sm:p-5"
+                >
+                    <div>
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300/70"
+                        >
+                            Preferences
+                        </p>
+                        <h3 class="mt-1 text-lg font-semibold text-white">
+                            Display currency
+                        </h3>
+                        <p class="mt-1.5 text-sm text-slate-400">
+                            Dashboard totals and the forecast are converted
+                            into this currency.
+                        </p>
+                    </div>
 
                     <div
                         v-if="preferencesSuccess"
-                        class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
+                        class="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
                     >
                         {{ preferencesSuccess }}
                     </div>
 
                     <form
                         @submit.prevent="updatePreferences"
-                        class="space-y-4"
+                        class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
                     >
-                        <div>
+                        <div class="w-full sm:max-w-xs">
                             <InputSelect
                                 v-model="currency"
-                                label="Preferred Currency"
+                                label="Preferred currency"
                                 :options="currencyOptions"
                             />
                             <p
@@ -431,44 +504,55 @@ onMounted(fetchProfile);
                             </p>
                         </div>
 
-                        <div class="flex justify-end">
-                            <button
+                        <div class="flex justify-end sm:shrink-0">
+                            <Button
                                 type="submit"
                                 :disabled="preferencesLoading"
-                                class="rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
                             >
                                 {{
                                     preferencesLoading
                                         ? 'Saving...'
-                                        : 'Save Preferences'
+                                        : 'Save preferences'
                                 }}
-                            </button>
+                            </Button>
                         </div>
                     </form>
                 </section>
 
-                <div class="h-px w-full bg-white/10"></div>
-
-                <section class="space-y-4">
-                    <h3
-                        class="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300/80"
-                    >
-                        Change Password
-                    </h3>
+                <section
+                    id="security"
+                    class="scroll-mt-28 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl shadow-slate-950/25 backdrop-blur-xl sm:p-5"
+                >
+                    <div>
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300/70"
+                        >
+                            Security
+                        </p>
+                        <h3 class="mt-1 text-lg font-semibold text-white">
+                            Change password
+                        </h3>
+                        <p class="mt-1.5 text-sm text-slate-400">
+                            Choose a strong password you don't use elsewhere.
+                        </p>
+                    </div>
 
                     <div
                         v-if="passwordSuccess"
-                        class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
+                        class="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
                     >
                         {{ passwordSuccess }}
                     </div>
 
-                    <form @submit.prevent="updatePassword" class="space-y-4">
+                    <form
+                        @submit.prevent="updatePassword"
+                        class="mt-5 grid gap-4 sm:grid-cols-2"
+                    >
                         <div>
                             <label
                                 for="current-password"
                                 class="mb-1.5 block text-sm font-medium text-slate-200"
-                                >Current Password</label
+                                >Current password</label
                             >
                             <input
                                 id="current-password"
@@ -476,11 +560,10 @@ onMounted(fetchProfile);
                                 type="password"
                                 required
                                 autocomplete="current-password"
-                                class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
                                 :class="
-                                    passwordErrors.current_password
-                                        ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40'
-                                        : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'
+                                    inputClass(
+                                        !!passwordErrors.current_password,
+                                    )
                                 "
                             />
                             <p
@@ -495,7 +578,7 @@ onMounted(fetchProfile);
                             <label
                                 for="new-password"
                                 class="mb-1.5 block text-sm font-medium text-slate-200"
-                                >New Password</label
+                                >New password</label
                             >
                             <input
                                 id="new-password"
@@ -503,11 +586,8 @@ onMounted(fetchProfile);
                                 type="password"
                                 required
                                 autocomplete="new-password"
-                                class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
                                 :class="
-                                    passwordErrors.password
-                                        ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40'
-                                        : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'
+                                    inputClass(!!passwordErrors.password)
                                 "
                             />
                             <p
@@ -522,7 +602,7 @@ onMounted(fetchProfile);
                             <label
                                 for="new-password-confirmation"
                                 class="mb-1.5 block text-sm font-medium text-slate-200"
-                                >Confirm New Password</label
+                                >Confirm new password</label
                             >
                             <input
                                 id="new-password-confirmation"
@@ -534,83 +614,83 @@ onMounted(fetchProfile);
                             />
                         </div>
 
-                        <div class="flex justify-end">
-                            <button
-                                type="submit"
-                                :disabled="passwordLoading"
-                                class="rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50 mt-4"
-                            >
+                        <div class="flex justify-end sm:col-span-2">
+                            <Button type="submit" :disabled="passwordLoading">
                                 {{
                                     passwordLoading
                                         ? 'Updating...'
-                                        : 'Update Password'
+                                        : 'Update password'
                                 }}
-                            </button>
+                            </Button>
                         </div>
                     </form>
                 </section>
+
+                <section
+                    id="danger"
+                    class="scroll-mt-28 rounded-2xl border border-red-500/20 bg-red-500/5 p-4 shadow-xl shadow-slate-950/25 backdrop-blur-xl sm:p-5"
+                >
+                    <div>
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.25em] text-red-400"
+                        >
+                            Danger zone
+                        </p>
+                        <h3 class="mt-1 text-lg font-semibold text-white">
+                            Delete account
+                        </h3>
+                        <p class="mt-1.5 text-sm text-slate-400">
+                            Permanently delete your account and all associated
+                            data. This cannot be undone.
+                        </p>
+                    </div>
+
+                    <form
+                        @submit.prevent="deleteAccount"
+                        class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+                    >
+                        <div class="w-full sm:max-w-xs">
+                            <label
+                                for="delete-password"
+                                class="mb-1.5 block text-sm font-medium text-slate-200"
+                                >Confirm your password</label
+                            >
+                            <input
+                                id="delete-password"
+                                v-model="deletePassword"
+                                type="password"
+                                required
+                                autocomplete="current-password"
+                                :class="inputClass(!!deleteErrors.password)"
+                            />
+                            <p
+                                v-if="deleteErrors.password"
+                                class="mt-1.5 text-xs text-red-400"
+                            >
+                                {{ deleteErrors.password[0] }}
+                            </p>
+                        </div>
+
+                        <div class="flex justify-end sm:shrink-0">
+                            <Button
+                                type="submit"
+                                variant="danger"
+                                :disabled="deleteLoading"
+                            >
+                                {{
+                                    deleteLoading
+                                        ? 'Deleting...'
+                                        : 'Delete account'
+                                }}
+                            </Button>
+                        </div>
+                    </form>
+                </section>
+
+                <div class="flex justify-center lg:hidden">
+                    <Button variant="outline" @click="logout">Log out</Button>
+                </div>
             </div>
-        </div>
-
-        <div
-            class="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 backdrop-blur-xl"
-        >
-            <h3
-                class="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-red-400"
-            >
-                Danger Zone
-            </h3>
-            <p class="mb-4 text-sm text-slate-400">
-                Permanently delete your account and all associated data.
-            </p>
-
-            <form @submit.prevent="deleteAccount" class="space-y-4">
-                <div>
-                    <label
-                        for="delete-password"
-                        class="mb-1.5 block text-sm font-medium text-slate-200"
-                        >Confirm your password</label
-                    >
-                    <input
-                        id="delete-password"
-                        v-model="deletePassword"
-                        type="password"
-                        required
-                        autocomplete="current-password"
-                        class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                        :class="
-                            deleteErrors.password
-                                ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40'
-                                : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'
-                        "
-                    />
-                    <p
-                        v-if="deleteErrors.password"
-                        class="mt-1.5 text-xs text-red-400"
-                    >
-                        {{ deleteErrors.password[0] }}
-                    </p>
-                </div>
-
-                <div class="flex justify-end">
-                    <button
-                        type="submit"
-                        :disabled="deleteLoading"
-                        class="rounded-xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-400 disabled:opacity-50"
-                    >
-                        {{ deleteLoading ? 'Deleting...' : 'Delete Account' }}
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <div class="flex justify-center pb-8">
-            <button
-                @click="logout"
-                class="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white"
-            >
-                Log out
-            </button>
         </div>
     </div>
 </template>

@@ -3,6 +3,7 @@
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -10,31 +11,18 @@ Route::get('/', function () {
         return redirect()->route('login');
     }
 
-    return redirect()->to(config('invoices.landing_path', '/calendar'));
+    return redirect()->to(config('invoices.landing_path', '/dashboard'));
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/invoices', function (Request $request) {
-        if (!$request->expectsJson()) {
-            return response()->view('app');
-        }
-
-        return app(InvoiceController::class)->index($request);
-    });
-    Route::get('/invoices/{invoice}', function (Request $request, $invoice) {
-        if (!$request->expectsJson()) {
-            return response()->view('app');
-        }
-
-        return app(InvoiceController::class)->show($request, $invoice);
-    });
-    
+    Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
     Route::post('/invoices', [InvoiceController::class, 'store']);
     Route::match(['put', 'patch'], '/invoices/{invoice}', [InvoiceController::class, 'update']);
     Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy']);
     Route::post('/invoices/import', [InvoiceController::class, 'import']);
 
-Route::get('/profile', [ProfileController::class, 'show']);
+    Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
     Route::delete('/profile', [ProfileController::class, 'destroy']);

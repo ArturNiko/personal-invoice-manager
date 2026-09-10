@@ -11,8 +11,8 @@ class ExchangeRateController extends Controller
 {
     public function show(Request $request, ExchangeRateService $service): JsonResponse|Response
     {
-        if ($request->expectsJson()) {
-            return $this->spaShellResponse();
+        if (!$request->expectsJson()) {
+            return response()->view('app');
         }
 
         return response()->json($service->rates());

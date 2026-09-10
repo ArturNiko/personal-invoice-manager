@@ -45,7 +45,7 @@ const submit = async () => {
         }
 
         document.body.dataset.authenticated = '1';
-        router.push('/calendar');
+        router.push('/dashboard');
     } 
     catch (error) {
         if (axios.isAxiosError(error)) {

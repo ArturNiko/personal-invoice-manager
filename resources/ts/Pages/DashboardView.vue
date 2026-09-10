@@ -282,7 +282,7 @@ const createInvoiceForDay = () => {
     if (!tooltipDate.value) return;
 
     router.push({
-        name: 'create',
+        name: 'invoice-create',
         query: {
             date: tooltipDate.value,
         },
@@ -359,8 +359,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="space-y-5">
-        <section class="grid gap-4 sm:grid-cols-3">
+    <div class="space-y-3 sm:space-y-5">
+        <section class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3 sm:gap-4">
             <DashboardStatCard
                 label="Due this month"
                 :value="statsDisplay.dueThisMonth"
@@ -382,7 +382,7 @@ onUnmounted(() => {
         </section>
 
         <section
-            class="calendar-shell relative flex h-full min-h-[38rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
+            class="calendar-shell relative flex h-full min-h-[30rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl sm:min-h-[38rem]"
         >
         <div
             class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6"
