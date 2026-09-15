@@ -53,11 +53,136 @@ class NanonetsClient
             'response_keys' => array_keys($payload),
         ]);
 
-        if ($this->looksLikeTaskEnvelope($payload)) {
-            return $this->pollAgentTaskResult($agentId, (string) ($payload['task_id'] ?? ''), $payload, $requestMetadata);
+        return $payload;
+    }
+
+    public function getTaskStatus(string $taskId): array
+    {
+        $endpoint = $this->resolveTaskEndpoint('services.nanonets.task_status_url', $taskId);
+
+        Log::info('Fetching Nanonets task status.', [
+            'task_id' => $taskId,
+            'endpoint' => $endpoint,
+        ]);
+
+        $response = Http::withToken((string) config('services.nanonets.api_key'))
+            ->acceptJson()
+            ->timeout(30)
+            ->get($endpoint);
+
+        $response->throw();
+
+        return $response->json() ?? [];
+    }
+
+    public function listTasks(): array
+    {
+        $endpoint = (string) config('services.nanonets.task_list_url');
+
+        Log::info('Fetching Nanonets task list.', ['endpoint' => $endpoint]);
+
+        $response = Http::withToken((string) config('services.nanonets.api_key'))
+            ->acceptJson()
+            ->timeout(30)
+            ->get($endpoint);
+
+        $response->throw();
+
+        return $response->json() ?? [];
+    }
+
+    public function fetchTaskResult(string $taskId): array
+    {
+        $endpoint = $this->resolveTaskEndpoint('services.nanonets.task_result_url', $taskId);
+
+        Log::info('Fetching Nanonets task result.', [
+            'task_id' => $taskId,
+            'endpoint' => $endpoint,
+        ]);
+
+        $response = Http::withToken((string) config('services.nanonets.api_key'))
+            ->acceptJson()
+            ->timeout(60)
+            ->get($endpoint);
+
+        $response->throw();
+
+        return $response->json() ?? [];
+    }
+
+    public function fetchStructuredResult(string $taskId): array
+    {
+        $endpoint = $this->resolveTaskEndpoint('services.nanonets.task_summary_url', $taskId);
+
+        Log::info('Fetching Nanonets task summary.', [
+            'task_id' => $taskId,
+            'endpoint' => $endpoint,
+        ]);
+
+        $response = Http::withToken((string) config('services.nanonets.api_key'))
+            ->acceptJson()
+            ->timeout(60)
+            ->get($endpoint);
+
+        $response->throw();
+
+        $payload = $response->json() ?? [];
+
+        $summary = $payload['result']['summary'] ?? null;
+
+        if (is_string($summary)) {
+            $decoded = json_decode($summary, true);
+
+            if (is_array($decoded)) {
+                Log::info('Nanonets task summary decoded as structured payload.', [
+                    'task_id' => $taskId,
+                    'keys' => array_keys($decoded),
+                ]);
+
+                return $decoded;
+            }
         }
 
-        return $payload;
+        Log::warning('Nanonets task summary did not contain a parseable structured payload, falling back to task result.', [
+            'task_id' => $taskId,
+            'summary' => $summary,
+        ]);
+
+        return $this->fetchTaskResult($taskId);
+    }
+
+    protected function resolveTaskEndpoint(string $configKey, string $taskId): string
+    {
+        $configured = trim((string) config($configKey, ''));
+
+        if ($configured === '') {
+            throw new RuntimeException(sprintf(
+                'Nanonets endpoint config for "%s" is missing. Set the corresponding env variable in your app config.',
+                $configKey,
+            ));
+        }
+
+        return strtr($configured, [
+            '{task_id}' => $taskId,
+            ':task_id' => $taskId,
+            '%task_id%' => $taskId,
+            '${task_id}' => $taskId,
+        ]);
+    }
+
+    public function extractPrediction(array $payload): ?array
+    {
+        foreach (['prediction', 'result', 'data'] as $key) {
+            if (isset($payload[$key]) && is_array($payload[$key])) {
+                return $payload[$key];
+            }
+        }
+
+        if ($this->looksLikeStructuredPayload($payload)) {
+            return $payload;
+        }
+
+        return null;
     }
 
     public function buildInvoiceAttributes(array $prediction): array
@@ -109,125 +234,6 @@ class NanonetsClient
         Log::info('Prediction payload mapped.', $attributes);
 
         return $attributes;
-    }
-
-    protected function pollAgentTaskResult(string $agentId, string $taskId, array $initialPayload, ?string $requestMetadata = null): array
-    {
-        $resultUrl = $this->resolveAgentResultUrl($agentId, $taskId);
-        $pollAttempts = max(1, (int) config('services.nanonets.agent_poll_attempts', 12));
-        $pollDelaySeconds = max(1, (int) config('services.nanonets.agent_poll_delay_seconds', 5));
-
-        if ($resultUrl === null) {
-            Log::warning('Nanonets agent result url is not configured.', [
-                'request_metadata' => $requestMetadata,
-                'task_id' => $taskId,
-                'agent_id' => $agentId,
-            ]);
-
-            throw new RuntimeException(sprintf('Nanonets agent task %s was queued, but no result url is configured.', $taskId));
-        }
-
-        for ($attempt = 1; $attempt <= $pollAttempts; $attempt++) {
-            Log::info('Polling Nanonets agent task result.', [
-                'request_metadata' => $requestMetadata,
-                'task_id' => $taskId,
-                'agent_id' => $agentId,
-                'attempt' => $attempt,
-                'poll_attempts' => $pollAttempts,
-                'result_url' => $resultUrl,
-            ]);
-
-            try {
-                $response = Http::withToken((string) config('services.nanonets.api_key'))
-                    ->acceptJson()
-                    ->timeout(120)
-                    ->get($resultUrl);
-            } catch (\Throwable $throwable) {
-                Log::warning('Nanonets agent result poll failed.', [
-                    'request_metadata' => $requestMetadata,
-                    'task_id' => $taskId,
-                    'agent_id' => $agentId,
-                    'attempt' => $attempt,
-                    'error' => $throwable->getMessage(),
-                ]);
-
-                sleep($pollDelaySeconds);
-                continue;
-            }
-
-            if (!$response->successful()) {
-                Log::warning('Nanonets agent result poll returned non-successful response.', [
-                    'request_metadata' => $requestMetadata,
-                    'task_id' => $taskId,
-                    'agent_id' => $agentId,
-                    'attempt' => $attempt,
-                    'status' => $response->status(),
-                ]);
-
-                sleep($pollDelaySeconds);
-                continue;
-            }
-
-            $payload = $response->json() ?? [];
-
-            if ($this->looksLikeTaskEnvelope($payload)) {
-                $status = strtolower(trim((string) ($payload['status'] ?? '')));
-
-                if (in_array($status, ['queued', 'pending', 'processing', 'running', 'in_progress'], true)) {
-                    sleep($pollDelaySeconds);
-                    continue;
-                }
-            }
-
-            if ($this->isFinalAgentPayload($payload)) {
-                Log::info('Nanonets agent task completed.', [
-                    'request_metadata' => $requestMetadata,
-                    'task_id' => $taskId,
-                    'agent_id' => $agentId,
-                    'attempt' => $attempt,
-                    'payload_keys' => array_keys($payload),
-                ]);
-
-                return $payload;
-            }
-
-            sleep($pollDelaySeconds);
-        }
-
-        throw new RuntimeException(sprintf('Nanonets agent task %s did not reach a final result after %d attempts.', $taskId, $pollAttempts));
-    }
-
-    protected function resolveAgentResultUrl(string $agentId, string $taskId): ?string
-    {
-        $configured = trim((string) config('services.nanonets.agent_result_url', ''));
-
-        if ($configured !== '') {
-            $replacements = [
-                '{task_id}' => $taskId,
-                '{agent_id}' => $agentId,
-                ':task_id' => $taskId,
-                ':agent_id' => $agentId,
-                '%task_id%' => $taskId,
-                '%agent_id%' => $agentId,
-            ];
-
-            return strtr($configured, $replacements);
-        }
-
-        $baseUrl = rtrim((string) config('services.nanonets.agent_base_url', 'https://agents.nanonets.com/api'), '/');
-
-        return $baseUrl . '/v1/tasks/' . $taskId;
-    }
-
-    protected function isFinalAgentPayload(array $payload): bool
-    {
-        return !$this->looksLikeTaskEnvelope($payload)
-            && (
-                $this->looksLikeStructuredPayload($payload)
-                || isset($payload['prediction'])
-                || isset($payload['result'])
-                || isset($payload['data'])
-            );
     }
 
     protected function describePayloadShape(array $payload): string
@@ -349,7 +355,7 @@ class NanonetsClient
             || array_key_exists('title', $payload);
     }
 
-    protected function looksLikeTaskEnvelope(array $payload): bool
+    public function looksLikeTaskEnvelope(array $payload): bool
     {
         return array_key_exists('task_id', $payload)
             && array_key_exists('status', $payload)

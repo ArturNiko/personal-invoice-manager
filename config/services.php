@@ -42,7 +42,6 @@ return [
         'base_url' => env('NANONETS_BASE_URL'),
         'agent_url' => env('NANONETS_AGENT_URL'),
         'agent_run_url' => env('NANONETS_AGENT_RUN_URL'),
-
         'task_list_url' => env('NANONETS_TASK_LIST_URL'),
         'task_status_url' => env('NANONETS_TASK_STATUS_URL'),
         'task_result_url' => env('NANONETS_TASK_RESULT_URL'),

@@ -97,47 +97,28 @@ class InvoiceController extends Controller
         $path = $file->store('invoice-uploads');
 
         $agentTask = AgentTask::create([
+            'user_id' => auth()->id(),
             'status' => AgentTaskState::PENDING->value,
             'file_path' => $path,
         ]);
 
         try {
-            $submission = $nanonetsClient->submitForProcessing($path, 'agent_task:'.$agentTask->id);
+            $submission = $nanonetsClient->predictStoredFile($path, 'agent_task:'.$agentTask->id);
 
-            if ($submission['task_id']) {
+            if ($nanonetsClient->looksLikeTaskEnvelope($submission)) {
                 $agentTask->update([
                     'status' => AgentTaskState::PROCESSING->value,
-                    'details' => ['nanonets_task_id' => $submission['task_id']],
+                    'details' => ['nanonets_task_id' => $submission['task_id'] ?? null],
                 ]);
-            } else {
-                $invoiceData = $nanonetsClient->buildInvoiceAttributes($submission['result']);
-                $invoiceData['user_id'] = auth()->id();
-
-                $invoice = DB::transaction(function () use ($agentTask, $invoiceData, $submission) {
-                    $invoice = Invoice::create($invoiceData);
-
-                    $agentTask->update([
-                        'status' => AgentTaskState::COMPLETED->value,
-                        'details' => $submission['result'],
-                        'invoice_id' => $invoice->id,
-                    ]);
-
-                    return $invoice;
-                });
 
                 return response()->json([
-                    'message' => 'Invoice processed successfully.',
-                    'invoice' => $invoice,
+                    'message' => 'Invoice uploaded and is being processed.',
                     'task_id' => $agentTask->id,
                     'status' => $agentTask->status,
-                ], 200);
+                ], 202);
             }
 
-            return response()->json([
-                'message' => 'Invoice received and queued for processing.',
-                'task_id' => $agentTask->id,
-                'status' => $agentTask->status,
-            ], 202);
+            throw new InvoiceNotProcessableException('Nanonets did not return a queued task envelope. Polling-based processing is required.');
         } catch (InvoiceNotProcessableException $exception) {
             $agentTask->update([
                 'status' => AgentTaskState::FAILED->value,
@@ -170,26 +151,4 @@ class InvoiceController extends Controller
         }
     }
 
-    protected function pollForResult(NanonetsClient $nanonetsClient, string $taskId): array
-    {
-        $maxAttempts = max(1, (int) config('services.nanonets.agent_poll_attempts', 12));
-        $pollDelay = max(1, (int) config('services.nanonets.agent_poll_delay_seconds', 5));
-
-        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            $prediction = $nanonetsClient->fetchTaskResult($taskId);
-
-            if (!$nanonetsClient->isStillProcessing($prediction)) {
-                return $prediction;
-            }
-
-            if ($attempt < $maxAttempts) {
-                sleep($pollDelay);
-            }
-        }
-
-        throw new \RuntimeException(sprintf(
-            'Nanonets agent task %s did not complete after %d attempts',
-            $taskId, $maxAttempts
-        ));
-    }
 }
