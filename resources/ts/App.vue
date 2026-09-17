@@ -1,16 +1,54 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, RouterLink, RouterView } from 'vue-router';
 
 import Icon from '@/Components/Icon.vue';
 import Widget from '@/Components/Widget.vue';
 import Calculator from '@/Widgets/Calculator.vue';
-import { useInvoices } from '@/Composables/useInvoices';
 import { loadAppSettings } from '@/Composables/useAppSettings';
+import { useTheme } from '@/Composables/useTheme';
+import { locale, setLocale, t } from '@/i18n';
+
+type NavItem = {
+    to: string;
+    routeName: string;
+    labelKey: string;
+    icon: string;
+};
+
+const navItems: NavItem[] = [
+    {
+        to: '/dashboard',
+        routeName: 'dashboard',
+        labelKey: 'app.navigation.dashboard',
+        icon: 'dashboard',
+    },
+    {
+        to: '/list',
+        routeName: 'list',
+        labelKey: 'app.navigation.list',
+        icon: 'list',
+    },
+    {
+        to: '/profile',
+        routeName: 'profile',
+        labelKey: 'app.navigation.profile',
+        icon: 'user',
+    },
+];
 
 const route = useRoute();
+const { theme, toggleTheme } = useTheme();
 const isCompactView = ref(false);
-const { totalAmountDisplay } = useInvoices();
+const isMenuOpen = ref(false);
+const isDarkTheme = computed(() => theme.value === 'dark');
+
+watch(
+    () => route.path,
+    () => {
+        isMenuOpen.value = false;
+    },
+);
 
 const isAuthRoute = computed(
     () =>
@@ -29,135 +67,240 @@ const showVerificationReminder = computed(
 );
 
 const updateCalendarView = () => {
-    isCompactView.value = window.innerWidth < 768;
+    isCompactView.value = window.innerWidth < 1024;
 };
 
 const isCreatePage = computed(() => route.path === '/invoice/create');
+
+const onMenuKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') isMenuOpen.value = false;
+};
 
 onMounted(() => {
     void loadAppSettings();
     updateCalendarView();
     window.addEventListener('resize', updateCalendarView);
+    window.addEventListener('keydown', onMenuKeydown);
 });
 
 onUnmounted(() => {
     window.removeEventListener('resize', updateCalendarView);
+    window.removeEventListener('keydown', onMenuKeydown);
 });
 
 const isCurrentRoute = (name: string) => route.name === name;
+const languageOptions = ['en', 'de'] as const;
 </script>
 
 <template>
     <div
         v-if="isAppLayout"
-        class="relative isolate min-h-dvh overflow-hidden bg-slate-950 text-slate-100"
+        class="relative isolate min-h-dvh overflow-hidden bg-[var(--app-bg)] text-slate-800 dark:text-slate-100"
     >
         <div
-            class="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.26),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,1)_0%,_rgba(2,6,23,1)_100%)]"
+            class="app-aurora pointer-events-none fixed inset-0 -z-10"
         ></div>
 
         <div
             class="relative mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-3 px-2 py-4 sm:gap-6 sm:px-4 sm:py-5 md:px-6 lg:px-8 lg:py-8"
         >
             <header
-                class="rounded-[2rem] border border-white/10 bg-slate-900/60 p-3 shadow-[0_20px_50px_rgba(15,23,42,0.6)] backdrop-blur-xl"
+                class="rounded-[1.75rem] border border-slate-900/10 bg-white/60 p-2.5 shadow-[0_12px_24px_-18px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/60 sm:p-3"
             >
-                <div
-                    class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
-                >
+                <div class="flex items-center justify-between gap-2">
                     <RouterLink
                         to="/dashboard"
-                        class="flex items-center gap-3 px-2 py-1 transition-opacity hover:opacity-90"
+                        class="group flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-90"
                     >
                         <div
-                            class="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-400/10 text-sm font-bold text-cyan-200"
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-700/40 bg-cyan-700/10 text-xs font-black tracking-tight text-cyan-700 shadow-[inset_0_1px_0_rgba(15,23,42,0.06)] transition group-hover:border-cyan-700/60 dark:border-cyan-300/40 dark:bg-cyan-400/10 dark:text-cyan-200 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] dark:group-hover:border-cyan-300/60"
                         >
                             PIM
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <p
-                                class="text-[10px] font-semibold uppercase tracking-[0.35em] text-cyan-300/80"
+                                class="hidden text-[0.55rem] font-semibold uppercase tracking-[0.34em] text-cyan-700/80 dark:text-cyan-300/80 sm:block"
                             >
-                                Personal
+                                {{ t('app.personal') }}
                             </p>
                             <h1
-                                class="text-lg font-semibold tracking-tight text-white"
+                                class="truncate text-base font-bold leading-tight tracking-[-0.05em] text-slate-900 dark:text-white sm:text-lg"
                             >
-                                Invoice Manager
+                                {{ t('app.invoiceManager') }}
                             </h1>
                         </div>
                     </RouterLink>
 
                     <nav
-                        class="flex items-center gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/60 p-1.5 backdrop-blur-xl scrollbar-none lg:justify-center"
+                        aria-label="Primary"
+                        class="hidden items-center gap-1 rounded-2xl border border-slate-900/10 bg-slate-100/50 p-1 dark:border-white/10 dark:bg-slate-950/50 lg:flex"
                     >
                         <RouterLink
-                            to="/list"
-                            aria-label="List"
-                            class="group inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 md:min-w-[112px]"
+                            v-for="item in navItems"
+                            :key="item.routeName"
+                            :to="item.to"
+                            :aria-label="t(item.labelKey)"
+                            class="flex h-10 items-center gap-2 rounded-xl px-3.5 text-sm font-semibold transition-all duration-200"
                             :class="
-                                isCurrentRoute('list')
-                                    ? 'bg-white text-slate-950 shadow-sm shadow-slate-950/30'
-                                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                                isCurrentRoute(item.routeName)
+                                    ? 'bg-slate-900 text-slate-100 shadow-sm shadow-slate-500/20 dark:bg-white dark:text-slate-950 dark:shadow-black/20'
+                                    : 'text-slate-700 hover:bg-slate-900/5 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white'
                             "
                         >
                             <Icon
-                                icon="list"
+                                :icon="item.icon"
                                 :theme="
-                                    isCurrentRoute('list') ? 'light' : 'dark'
+                                    isCurrentRoute(item.routeName)
+                                        ? 'light'
+                                        : 'dark'
                                 "
-                                class="h-4 w-4 shrink-0 md:h-5 md:w-5"
+                                class="h-4 w-4 shrink-0"
                             />
-                            <span class="hidden md:inline">List</span>
+                            {{ t(item.labelKey) }}
                         </RouterLink>
 
-                        <RouterLink
-                            v-if="!isCreatePage"
-                            to="/invoice/create"
-                            aria-label="Create invoice"
-                            class="group inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-3 py-2.5 text-sm font-medium text-cyan-100 transition-all duration-200 hover:bg-cyan-500/20 md:min-w-[120px]"
-                            :class="
-                                isCurrentRoute('invoice-create')
-                                    ? 'ring-1 ring-cyan-300/60 bg-cyan-500/15'
-                                    : ''
-                            "
-                        >
-                            <Icon
-                                icon="add"
-                                :theme="'dark'"
-                                class="h-4 w-4 shrink-0 md:h-5 md:w-5"
-                            />
-                            <span class="hidden md:inline">Create</span>
-                        </RouterLink>
+                        <template v-if="!isCreatePage">
+                            <div class="mx-1 h-6 w-px bg-slate-900/10 dark:bg-white/10"></div>
 
-                        <RouterLink
-                            to="/profile"
-                            aria-label="Profile"
-                            class="group inline-flex items-center justify-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-3 py-2.5 text-sm font-medium text-violet-50 transition-all duration-200 hover:bg-violet-500/20 md:min-w-[120px]"
-                            :class="
-                                isCurrentRoute('profile')
-                                    ? 'ring-1 ring-violet-300/60 bg-violet-500/15'
-                                    : ''
-                            "
-                        >
-                            <Icon
-                                icon="user"
-                                :theme="'dark'"
-                                class="h-4 w-4 shrink-0 md:h-5 md:w-5"
-                            />
-                            <span class="hidden md:inline">Profile</span>
-                        </RouterLink>
+                            <RouterLink
+                                v-if="!isCreatePage"
+                                to="/invoice/create"
+                                :aria-label="t('app.navigation.createInvoice')"
+                                class="flex h-10 items-center gap-2 rounded-xl border border-cyan-700/30 bg-cyan-500/15 px-3.5 text-sm font-semibold text-cyan-800 transition-all duration-200 hover:bg-cyan-500/25 hover:text-slate-900 dark:border-cyan-400/30 dark:text-cyan-100 dark:hover:text-white"
+                            >
+                                <Icon
+                                    icon="add"
+                                    theme="dark"
+                                    class="h-4 w-4 shrink-0"
+                                />
+                                {{ t('app.navigation.create') }}
+                            </RouterLink>
+                        </template>
                     </nav>
+
+                    <div
+                        class="flex shrink-0 items-center justify-end gap-1.5"
+                    >
+                        <div
+                            class="flex items-center gap-1 rounded-xl border border-slate-900/10 bg-slate-100/60 p-1 dark:border-white/10 dark:bg-slate-950/60"
+                        >
+                            <button
+                                v-for="language in languageOptions"
+                                :key="language"
+                                type="button"
+                                class="flex h-9 min-w-[3.1rem] items-center justify-center rounded-lg px-2 text-[0.7rem] font-bold uppercase tracking-[0.18em] transition"
+                                :class="
+                                    locale === language
+                                        ? 'bg-slate-900 text-slate-100 shadow-sm shadow-slate-100/20 dark:bg-white dark:text-slate-950 dark:shadow-slate-950/20'
+                                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                                "
+                                @click="setLocale(language)"
+                            >
+                                {{ language }}
+                            </button>
+                        </div>
+
+                        <button
+                            type="button"
+                            :aria-label="
+                                theme === 'dark'
+                                    ? t('app.theme.toLight')
+                                    : t('app.theme.toDark')
+                            "
+                            class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-900/10 bg-slate-100/60 text-slate-800 transition hover:bg-slate-900/5 hover:text-slate-900 shadow-[0_8px_20px_-12px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:bg-white/5 dark:hover:text-white dark:shadow-[0_8px_20px_-12px_rgba(15,23,42,0.8)]"
+                            @click="toggleTheme"
+                        >
+                            <Icon
+                                :icon="isDarkTheme ? 'sun' : 'moon'"
+                                theme="dark"
+                                class="h-4 w-4"
+                            />
+                        </button>
+
+                        <button
+                            type="button"
+                            :aria-label="
+                                isMenuOpen
+                                    ? t('app.navigation.closeMenu')
+                                    : t('app.navigation.openMenu')
+                            "
+                            :aria-expanded="isMenuOpen"
+                            aria-haspopup="true"
+                            class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-900/10 bg-slate-100/60 text-slate-700 transition hover:bg-slate-900/5 hover:text-slate-900 dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white lg:hidden"
+                            @click="isMenuOpen = !isMenuOpen"
+                        >
+                            <Icon
+                                :icon="isMenuOpen ? 'close' : 'menu'"
+                                theme="dark"
+                                class="h-5 w-5"
+                            />
+                        </button>
+                    </div>
                 </div>
+
+                <Transition name="menu">
+                    <nav
+                        v-if="isMenuOpen"
+                        aria-label="Primary"
+                        class="mt-2.5 flex flex-col gap-1 rounded-[1.2rem] border border-slate-900/10 bg-slate-100/60 p-1.5 dark:border-white/10 dark:bg-slate-950/60 lg:hidden"
+                    >
+                        <RouterLink
+                            v-for="item in navItems"
+                            :key="item.routeName"
+                            :to="item.to"
+                            :aria-label="t(item.labelKey)"
+                            class="flex h-12 items-center gap-3 rounded-xl px-3 transition-all duration-200"
+                            :class="
+                                isCurrentRoute(item.routeName)
+                                    ? 'bg-slate-900 text-slate-100 shadow-sm shadow-slate-500/30 dark:bg-white dark:text-slate-950 dark:shadow-black/30'
+                                    : 'text-slate-700 hover:bg-slate-900/5 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white'
+                            "
+                        >
+                            <Icon
+                                :icon="item.icon"
+                                :theme="
+                                    isCurrentRoute(item.routeName)
+                                        ? 'light'
+                                        : 'dark'
+                                "
+                                class="h-5 w-5 shrink-0"
+                            />
+                            <span class="text-sm font-semibold">
+                                {{ t(item.labelKey) }}
+                            </span>
+                            <span
+                                v-if="isCurrentRoute(item.routeName)"
+                                class="ml-auto h-1.5 w-1.5 rounded-full bg-sky-500"
+                            ></span>
+                        </RouterLink>
+
+                        <template v-if="!isCreatePage">
+                            <div class="mx-2 h-px bg-slate-900/10 dark:bg-white/10"></div>
+
+                            <RouterLink
+                                to="/invoice/create"
+                                :aria-label="t('app.navigation.createInvoice')"
+                                class="flex h-12 items-center gap-3 rounded-xl border border-cyan-700/30 bg-cyan-500/15 px-3 text-cyan-800 transition-all duration-200 hover:bg-cyan-500/25 hover:text-slate-900 dark:border-cyan-400/30 dark:text-cyan-100 dark:hover:text-white"
+                            >
+                                <Icon
+                                    icon="add"
+                                    theme="dark"
+                                    class="h-5 w-5 shrink-0"
+                                />
+                                <span class="text-sm font-semibold">
+                                    {{ t('app.navigation.create') }}
+                                </span>
+                            </RouterLink>
+                        </template>
+                    </nav>
+                </Transition>
             </header>
 
             <section
                 v-if="showVerificationReminder"
-                class="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+                class="rounded-2xl border border-red-300/80 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"
             >
-                Your email address is not verified yet. You can still use the
-                app, but please open your profile to resend the verification
-                email.
+                {{ t('app.verificationReminder') }}
             </section>
 
             <main class="min-h-0 flex-1">
@@ -170,7 +313,48 @@ const isCurrentRoute = (name: string) => route.name === name;
         </div>
     </div>
 
-    <div v-else-if="isAuthRoute" class="min-h-dvh bg-slate-950 text-slate-100">
+    <div
+        v-else-if="isAuthRoute"
+        class="min-h-dvh bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+    >
+        <div class="absolute right-4 top-4 z-20">
+            <div
+                class="flex items-center gap-1 rounded-xl border border-slate-900/10 bg-white/80 p-1 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/80"
+            >
+                <button
+                    v-for="language in languageOptions"
+                    :key="language"
+                    type="button"
+                    class="rounded-lg px-2.5 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] transition"
+                    :class="
+                        locale === language
+                            ? 'bg-slate-900 text-slate-100 shadow-sm dark:bg-white dark:text-slate-950'
+                            : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                    "
+                    @click="setLocale(language)"
+                >
+                    {{ language }}
+                </button>
+
+                <button
+                    type="button"
+                    :aria-label="
+                        theme === 'dark'
+                            ? t('app.theme.toLight')
+                            : t('app.theme.toDark')
+                    "
+                    class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                    @click="toggleTheme"
+                >
+                    <Icon
+                        :icon="theme === 'dark' ? 'sun' : 'moon'"
+                        :theme="theme === 'dark' ? 'dark' : 'light'"
+                        class="h-4 w-4"
+                    />
+                </button>
+            </div>
+        </div>
+
         <RouterView v-slot="{ Component }">
             <Transition name="fade" mode="out-in">
                 <component :is="Component" :key="route.path" />
@@ -178,7 +362,10 @@ const isCurrentRoute = (name: string) => route.name === name;
         </RouterView>
     </div>
 
-    <div v-else class="min-h-dvh bg-slate-950 text-slate-100">
+    <div
+        v-else
+        class="min-h-dvh bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+    >
         <RouterView v-slot="{ Component }">
             <Transition name="fade" mode="out-in">
                 <component :is="Component" :key="route.path" />
@@ -203,5 +390,19 @@ const isCurrentRoute = (name: string) => route.name === name;
 .fade-leave-to {
     opacity: 0;
     transform: translateY(8px);
+}
+
+.menu-enter-active,
+.menu-leave-active {
+    transform-origin: top;
+    transition:
+        opacity 160ms ease,
+        transform 160ms ease;
+}
+
+.menu-enter-from,
+.menu-leave-to {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.98);
 }
 </style>

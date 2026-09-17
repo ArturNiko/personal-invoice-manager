@@ -19,27 +19,28 @@ const props = withDefaults(
 );
 
 const toneClasses: Record<NonNullable<typeof props.tone>, string> = {
-    default: 'border-white/10 bg-slate-900/75 text-white',
-    sky: 'border-sky-400/25 bg-sky-500/10 text-sky-100',
-    teal: 'border-teal-400/25 bg-teal-500/10 text-teal-100',
-    rose: 'border-rose-400/25 bg-rose-500/10 text-rose-100',
-    amber: 'border-amber-400/25 bg-amber-500/10 text-amber-100',
+    default:
+        'border-slate-900/10 bg-white/75 text-slate-900 dark:border-white/10 dark:bg-slate-900/75 dark:text-white',
+    sky: 'border-sky-600/25 bg-sky-600/10 text-sky-800 dark:border-sky-400/25 dark:bg-sky-500/10 dark:text-sky-100',
+    teal: 'border-teal-600/25 bg-teal-600/10 text-teal-800 dark:border-teal-400/25 dark:bg-teal-500/10 dark:text-teal-100',
+    rose: 'border-rose-600/25 bg-rose-700/10 text-rose-800 dark:border-rose-400/25 dark:bg-rose-500/10 dark:text-rose-100',
+    amber: 'border-amber-600/25 bg-amber-700/10 text-amber-800 dark:border-amber-400/25 dark:bg-amber-500/10 dark:text-amber-100',
 };
 
 const labelClasses: Record<NonNullable<typeof props.tone>, string> = {
-    default: 'text-slate-400',
-    sky: 'text-sky-300/70',
-    teal: 'text-teal-300/70',
-    rose: 'text-rose-300/70',
-    amber: 'text-amber-300/70',
+    default: 'text-slate-600 dark:text-slate-400',
+    sky: 'text-sky-700/70 dark:text-sky-300/70',
+    teal: 'text-teal-700/70 dark:text-teal-300/70',
+    rose: 'text-rose-700/70 dark:text-rose-300/70',
+    amber: 'text-amber-700/70 dark:text-amber-300/70',
 };
 
 const hintClasses: Record<NonNullable<typeof props.tone>, string> = {
-    default: 'text-slate-400',
-    sky: 'text-sky-300/60',
-    teal: 'text-teal-300/60',
-    rose: 'text-rose-300/60',
-    amber: 'text-amber-300/60',
+    default: 'text-slate-600 dark:text-slate-400',
+    sky: 'text-sky-700/60 dark:text-sky-300/60',
+    teal: 'text-teal-700/60 dark:text-teal-300/60',
+    rose: 'text-rose-700/60 dark:text-rose-300/60',
+    amber: 'text-amber-700/60 dark:text-amber-300/60',
 };
 
 const cardClasses = computed(() => [
@@ -75,7 +76,7 @@ const iconBoxClasses = computed(() => [
 
         <div>
             <p
-                class="text-base font-semibold text-white sm:text-2xl lg:text-3xl"
+                class="text-base font-semibold text-slate-900 sm:text-2xl lg:text-3xl dark:text-white"
             >
                 {{ value }}
             </p>

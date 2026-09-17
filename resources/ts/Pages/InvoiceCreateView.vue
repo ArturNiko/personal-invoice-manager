@@ -5,12 +5,9 @@ import { useRoute } from 'vue-router';
 import axios from 'axios';
 
 import { formatMoney, normalizeDateValue } from '@/Utils/Helpers';
-import { calculateOccurrencesCount } from '@/Utils/Occurrences';
+import { locale, t } from '@/i18n';
 import {
     currencyOptions,
-    invoiceRecurrenceOptions,
-    invoiceStatusOptions,
-    invoiceTypeOptions,
 } from '@/Utils/Consts';
 
 import InputText from '@/Components/Form/InputText.vue';
@@ -51,6 +48,29 @@ const form = reactive<InvoiceForm>({
     price: '',
 });
 
+const isGerman = computed(() => locale.value === 'de');
+
+const invoiceTypeOptions = computed(() => [
+    { label: t('invoices.oneTime'), value: InvoiceTypes.ONE_TIME },
+    { label: t('invoices.recurring'), value: InvoiceTypes.RECURRING },
+]);
+
+const invoiceStatusOptions = computed(() => [
+    { label: isGerman.value ? 'Ausstehend' : 'Pending', value: InvoiceStatuses.PENDING },
+    { label: isGerman.value ? 'Bezahlt' : 'Paid', value: InvoiceStatuses.PAID },
+    { label: isGerman.value ? 'Überfällig' : 'Overdue', value: InvoiceStatuses.OVERDUE },
+]);
+
+const invoiceRecurrenceOptions = computed(() => [
+    { label: isGerman.value ? 'Keine' : 'None', value: InvoiceRecurrence.NONE },
+    { label: isGerman.value ? 'Wöchentlich' : 'Weekly', value: InvoiceRecurrence.WEEKLY },
+    { label: isGerman.value ? 'Alle zwei Wochen' : 'Biweekly', value: InvoiceRecurrence.BIWEEKLY },
+    { label: isGerman.value ? 'Monatlich' : 'Monthly', value: InvoiceRecurrence.MONTHLY },
+    { label: isGerman.value ? 'Vierteljährlich' : 'Quarterly', value: InvoiceRecurrence.QUARTERLY },
+    { label: isGerman.value ? 'Halbjährlich' : 'Semiannual', value: InvoiceRecurrence.SEMIANNUAL },
+    { label: isGerman.value ? 'Jährlich' : 'Yearly', value: InvoiceRecurrence.YEARLY },
+]);
+
 const isRecurring = computed(() => form.type === InvoiceTypes.RECURRING);
 const isImportMode = computed(() => createMode.value === 'import');
 
@@ -62,21 +82,57 @@ const isRecurringRangeInvalid = computed(() => {
 
 const recurringPreviewLabel = computed(() => {
     if (!isRecurring.value)
-        return `Price: ${formatMoney(Number(form.price || '0'), form.currency)}`;
+        return `${t('invoices.previewPrice')}: ${formatMoney(Number(form.price || '0'), form.currency)}`;
 
-    if (form.start_date && !form.end_date) return 'Recurring schedule: Endless';
+    if (form.start_date && !form.end_date)
+        return t('invoices.recurringScheduleEndless');
     if (!form.start_date || !form.end_date)
-        return 'Recurring schedule: not set';
+        return t('invoices.recurringScheduleUnset');
 
-    return `Occurrences: ${calculateOccurrencesCount(form.start_date, form.end_date, form.recurrence)}`;
+    return `${t('invoices.previewSchedule')}: ${getRecurrenceLabel(form.recurrence)}`;
 });
 
-const priceInputLabel = computed(() =>
-    isRecurring.value ? 'Occurrence price' : 'Price',
-);
+const getTypeLabel = (type: InvoiceTypes) =>
+    type === InvoiceTypes.RECURRING ? t('invoices.recurring') : t('invoices.oneTime');
+
+const getStatusLabel = (status: InvoiceStatuses) => {
+    switch (status) {
+        case InvoiceStatuses.PAID:
+            return isGerman.value ? 'Bezahlt' : 'Paid';
+        case InvoiceStatuses.OVERDUE:
+            return isGerman.value ? 'Überfällig' : 'Overdue';
+        default:
+            return isGerman.value ? 'Ausstehend' : 'Pending';
+    }
+};
+
+const getCurrencyLabel = (currency: Currency) => currency;
 
 const dateInputLabel = computed(() =>
-    isRecurring.value ? 'Start date' : 'Date',
+    isRecurring.value ? (isGerman.value ? 'Startdatum' : 'Start date') : (isGerman.value ? 'Datum' : 'Date'),
+);
+
+const getRecurrenceLabel = (recurrence: InvoiceRecurrence) => {
+    switch (recurrence) {
+        case InvoiceRecurrence.WEEKLY:
+            return isGerman.value ? 'Wöchentlich' : 'Weekly';
+        case InvoiceRecurrence.BIWEEKLY:
+            return isGerman.value ? 'Alle zwei Wochen' : 'Biweekly';
+        case InvoiceRecurrence.MONTHLY:
+            return isGerman.value ? 'Monatlich' : 'Monthly';
+        case InvoiceRecurrence.QUARTERLY:
+            return isGerman.value ? 'Vierteljährlich' : 'Quarterly';
+        case InvoiceRecurrence.SEMIANNUAL:
+            return isGerman.value ? 'Halbjährlich' : 'Semiannual';
+        case InvoiceRecurrence.YEARLY:
+            return isGerman.value ? 'Jährlich' : 'Yearly';
+        default:
+            return isGerman.value ? 'Keine' : 'None';
+    }
+};
+
+const priceInputLabel = computed(() =>
+    isRecurring.value ? t('invoices.occurrencePrice') : t('invoices.price'),
 );
 
 const setCreateMode = (mode: 'manual' | 'import') => {
@@ -112,7 +168,7 @@ const resetForm = () => {
 
 const submitImport = async () => {
     if (!importFile.value) {
-        submitError.value = 'Please choose a PDF file to import.';
+        submitError.value = t('invoices.choosePdfPrompt');
         return;
     }
 
@@ -131,11 +187,11 @@ const submitImport = async () => {
         });
 
         importSuccess.value =
-            response.data?.message ?? 'Invoice is being processed.';
+            response.data?.message ?? t('invoices.invoiceProcessing');
         importFile.value = null;
     } catch (error: any) {
         submitError.value =
-            error?.response?.data?.message ?? 'Failed to import invoice.';
+            error?.response?.data?.message ?? t('invoices.importFailed');
     } finally {
         isImporting.value = false;
     }
@@ -148,8 +204,7 @@ const submitForm = async () => {
     }
 
     if (isRecurringRangeInvalid.value) {
-        submitError.value =
-            'Recurring end date must be on or after the start date.';
+        submitError.value = t('invoices.recurringRangeError');
         return;
     }
 
@@ -171,12 +226,12 @@ const submitForm = async () => {
 
     try {
         await axios.post('/invoices', payload);
-        submitSuccess.value = 'Invoice created successfully.';
+        submitSuccess.value = t('invoices.invoiceCreated');
         resetForm();
         await router.push({ path: '/list', query: { updated: '1' } });
     } catch (error: any) {
         submitError.value =
-            error?.response?.data?.message ?? 'Failed to create invoice.';
+            error?.response?.data?.message ?? t('invoices.failedToCreateInvoice');
     } finally {
         isSubmitting.value = false;
     }
@@ -185,13 +240,12 @@ const submitForm = async () => {
 
 <template>
     <section
-        class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
+        class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-900/5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40"
     >
-        <div class="border-b border-white/10 px-5 py-4 sm:px-6">
-            <h2 class="text-lg font-semibold text-white">Create invoice</h2>
-            <p class="text-sm text-slate-400">
-                Add a new invoice by entering the details below or importing an
-                existing PDF.
+        <div class="border-b border-slate-900/10 px-5 py-4 sm:px-6 dark:border-white/10">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('invoices.createInvoice') }}</h2>
+            <p class="text-sm text-slate-600 dark:text-slate-400">
+                {{ t('invoices.createInvoiceSubtitle') }}
             </p>
         </div>
 
@@ -201,7 +255,7 @@ const submitForm = async () => {
         >
             <div class="space-y-6">
                 <div
-                    class="rounded-2xl border border-white/10 bg-slate-900/70 p-1 shadow-lg shadow-slate-950/30"
+                    class="rounded-2xl border border-slate-900/10 bg-white/70 p-1 shadow-lg shadow-slate-500/30 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-black/30"
                 >
                     <div class="grid grid-cols-2 gap-1">
                         <button
@@ -209,24 +263,24 @@ const submitForm = async () => {
                             class="rounded-xl px-4 py-2 text-sm font-medium transition"
                             :class="
                                 createMode === 'manual'
-                                    ? 'bg-white text-slate-950 shadow'
-                                    : 'text-slate-300 hover:text-white'
+                                    ? 'bg-slate-900 text-white shadow dark:bg-white dark:text-slate-950'
+                                    : 'text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
                             "
                             @click="setCreateMode('manual')"
                         >
-                            Manual Entry
+                            {{ t('invoices.manualEntry') }}
                         </button>
                         <button
                             type="button"
                             class="rounded-xl px-4 py-2 text-sm font-medium transition"
                             :class="
                                 createMode === 'import'
-                                    ? 'bg-white text-slate-950 shadow'
-                                    : 'text-slate-300 hover:text-white'
+                                    ? 'bg-slate-900 text-white shadow dark:bg-white dark:text-slate-950'
+                                    : 'text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
                             "
                             @click="setCreateMode('import')"
                         >
-                            Import PDF
+                            {{ t('invoices.importPdf') }}
                         </button>
                     </div>
                 </div>
@@ -235,9 +289,9 @@ const submitForm = async () => {
                     <div class="grid gap-4 sm:grid-cols-2">
                         <InputText
                             v-model="form.title"
-                            label="Title"
+                            :label="t('invoices.title')"
                             required
-                            placeholder="Subscription"
+                            :placeholder="t('invoices.titlePlaceholder')"
                         />
                         <InputBalance
                             v-model="form.price"
@@ -251,12 +305,12 @@ const submitForm = async () => {
                     <div class="grid gap-4 sm:grid-cols-2">
                         <InputSelect
                             v-model="form.type"
-                            label="Type"
+                            :label="t('invoices.type')"
                             :options="invoiceTypeOptions"
                         />
                         <InputSelect
                             v-model="form.status"
-                            label="Status"
+                            :label="t('invoices.status')"
                             :options="invoiceStatusOptions"
                         />
                     </div>
@@ -270,20 +324,20 @@ const submitForm = async () => {
                         <InputDate
                             v-if="isRecurring"
                             v-model="form.end_date"
-                            label="End date"
+                            :label="t('invoices.endDate')"
                         />
                     </div>
 
                     <p
                         v-if="isRecurringRangeInvalid"
-                        class="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100"
+                        class="rounded-xl border border-red-600/30 bg-red-600/10 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-100"
                     >
-                        Recurring end date must be on or after the start date.
+                        {{ t('invoices.recurringRangeError') }}
                     </p>
 
                     <InputSelect
                         v-model="form.recurrence"
-                        label="Recurrence"
+                        :label="t('invoices.recurrence')"
                         :options="invoiceRecurrenceOptions"
                         :disabled="!isRecurring"
                     />
@@ -292,20 +346,20 @@ const submitForm = async () => {
                 <div v-else class="space-y-4">
                     <FileInput
                         v-model="importFile"
-                        label="Invoice PDF"
-                        button-label="Choose PDF"
-                        hint="PDF"
+                        :label="t('invoices.invoicePdf')"
+                        :button-label="t('invoices.choosePdf')"
+                        :hint="t('invoices.pdfHint')"
                     />
 
                     <p
                         v-if="submitError"
-                        class="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100"
+                        class="rounded-xl border border-red-600/30 bg-red-600/10 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-100"
                     >
                         {{ submitError }}
                     </p>
                     <p
                         v-if="importSuccess"
-                        class="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100"
+                        class="rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-100"
                     >
                         {{ importSuccess }}
                     </p>
@@ -313,44 +367,44 @@ const submitForm = async () => {
             </div>
 
             <aside
-                class="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-5"
+                class="rounded-2xl border border-dashed border-slate-900/10 bg-slate-100/30 p-5 dark:border-white/10 dark:bg-slate-950/30"
             >
-                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">
-                    Preview
+                <p class="text-xs uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400">
+                    {{ t('invoices.previewSummary') }}
                 </p>
-                <h3 class="mt-2 text-xl font-semibold text-white">
+                <h3 class="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
                     {{
                         createMode === 'import'
-                            ? 'Import invoice'
-                            : 'New invoice'
+                            ? t('invoices.invoiceImportPreview')
+                            : t('invoices.invoicePreview')
                     }}
                 </h3>
-                <p class="mt-2 text-sm leading-6 text-slate-400">
+                <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
                     {{
                         createMode === 'import'
-                            ? 'Choose a PDF and hand it off to the invoice reader.'
-                            : 'The form adjusts automatically for one-time and recurring invoices.'
+                            ? t('invoices.invoiceImportDescription')
+                            : t('invoices.invoiceManualDescription')
                     }}
                 </p>
 
-                <div class="mt-6 space-y-3 text-sm text-slate-300">
+                <div class="mt-6 space-y-3 text-sm text-slate-700 dark:text-slate-300">
                     <div
-                        class="rounded-xl border border-white/10 bg-white/5 p-3"
+                        class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                     >
-                        Type: {{ form.type }}
+                        {{ t('invoices.previewType') }}: {{ getTypeLabel(form.type) }}
                     </div>
                     <div
-                        class="rounded-xl border border-white/10 bg-white/5 p-3"
+                        class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                     >
-                        Status: {{ form.status }}
+                        {{ t('invoices.previewStatus') }}: {{ getStatusLabel(form.status) }}
                     </div>
                     <div
-                        class="rounded-xl border border-white/10 bg-white/5 p-3"
+                        class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                     >
-                        Currency: {{ form.currency }}
+                        {{ t('invoices.previewCurrency') }}: {{ getCurrencyLabel(form.currency) }}
                     </div>
                     <div
-                        class="rounded-xl border border-white/10 bg-white/5 p-3"
+                        class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                     >
                         {{ recurringPreviewLabel }}
                     </div>
@@ -358,13 +412,13 @@ const submitForm = async () => {
 
                 <p
                     v-if="submitError && createMode === 'manual'"
-                    class="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100"
+                    class="mt-6 rounded-xl border border-red-600/30 bg-red-600/10 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-100"
                 >
                     {{ submitError }}
                 </p>
                 <p
                     v-if="submitSuccess && createMode === 'manual'"
-                    class="mt-6 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100"
+                    class="mt-6 rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-100"
                 >
                     {{ submitSuccess }}
                 </p>
@@ -377,7 +431,7 @@ const submitForm = async () => {
                     block
                     class="mt-6"
                 >
-                    {{ isSubmitting ? 'Saving...' : 'Create invoice' }}
+                    {{ isSubmitting ? t('invoices.saving') : t('invoices.createInvoice') }}
                 </Button>
                 <Button
                     v-else
@@ -388,7 +442,7 @@ const submitForm = async () => {
                     class="mt-6"
                     @click="submitImport"
                 >
-                    {{ isImporting ? 'Importing...' : 'Import invoice' }}
+                    {{ isImporting ? t('invoices.importing') : t('invoices.importInvoice') }}
                 </Button>
             </aside>
         </form>

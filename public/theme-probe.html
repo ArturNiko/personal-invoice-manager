@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/build/assets/app-CAKUOasG.css" />
+    </head>
+    <body>
+        <div id="page" class="bg-slate-950 text-slate-100">
+            <span id="heading" class="text-white">H</span>
+            <span id="muted" class="text-slate-400">M</span>
+            <span id="secondary" class="text-slate-300">S</span>
+            <span id="pill" class="bg-white text-slate-950">P</span>
+            <div id="card" class="border border-white/10 bg-white/5">C</div>
+            <button id="cyanbtn" class="bg-cyan-400 text-slate-950">B</button>
+            <span id="skybadge" class="text-sky-200">Sky</span>
+            <span id="rosebadge" class="text-rose-100">Rose</span>
+            <input id="input" class="border border-white/10 bg-slate-950/50 text-white" />
+            <div id="header" class="bg-slate-900/60">Hdr</div>
+            <span id="newbtn" class="border border-cyan-400/30 bg-cyan-500/15 text-cyan-100">New</span>
+        </div>
+        <pre id="out"></pre>
+        <script>
+            function snap(theme) {
+                document.documentElement.className = theme;
+                document.documentElement.style.colorScheme = theme;
+                const g = (id, prop) =>
+                    getComputedStyle(document.getElementById(id))[prop];
+
+                return {
+                    page_bg: g('page', 'backgroundColor'),
+                    heading: g('heading', 'color'),
+                    muted: g('muted', 'color'),
+                    secondary: g('secondary', 'color'),
+                    pill_bg: g('pill', 'backgroundColor'),
+                    pill_text: g('pill', 'color'),
+                    card_bg: g('card', 'backgroundColor'),
+                    card_border: g('card', 'borderTopColor'),
+                    cyan_btn_bg: g('cyanbtn', 'backgroundColor'),
+                    cyan_btn_text: g('cyanbtn', 'color'),
+                    sky_badge: g('skybadge', 'color'),
+                    rose_badge: g('rosebadge', 'color'),
+                    input_bg: g('input', 'backgroundColor'),
+                    header_bg: g('header', 'backgroundColor'),
+                    new_btn_text: g('newbtn', 'color'),
+                };
+            }
+
+            const dark = snap('dark');
+            const light = snap('light');
+
+            document.getElementById('out').textContent =
+                'DARK ' +
+                JSON.stringify(dark, null, 1) +
+                '\nLIGHT ' +
+                JSON.stringify(light, null, 1);
+        </script>
+    </body>
+</html>

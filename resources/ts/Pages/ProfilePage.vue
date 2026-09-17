@@ -5,7 +5,9 @@ import { useRouter } from 'vue-router';
 
 import Button from '@/Components/Button.vue';
 import InputSelect from '@/Components/Form/InputSelect.vue';
+import InputText from '@/Components/Form/InputText.vue';
 import { updateAppCurrency } from '@/Composables/useAppSettings';
+import { t } from '@/i18n';
 import { currencyOptions } from '@/Utils/Consts';
 
 const router = useRouter();
@@ -51,17 +53,6 @@ const csrf =
 
 const activeSection = ref('account');
 
-const inputBaseClass =
-    'w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2';
-const inputErrorClass =
-    'border-red-500/60 focus:border-red-400 focus:ring-red-500/40';
-const inputNormalClass =
-    'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40';
-const inputClass = (hasError: boolean) => [
-    inputBaseClass,
-    hasError ? inputErrorClass : inputNormalClass,
-];
-
 const scrollToSection = (id: string) => {
     activeSection.value = id;
     document.getElementById(id)?.scrollIntoView({
@@ -105,10 +96,9 @@ async function resendVerificationEmail() {
         );
 
         verificationStatus.value =
-            res.data.message ?? 'Verification email sent again.';
+            res.data.message ?? t('profile.emailVerificationSent');
     } catch {
-        verificationStatus.value =
-            'We could not resend the email. Please try again.';
+        verificationStatus.value = t('profile.emailVerificationFailed');
     } finally {
         verificationLoading.value = false;
     }
@@ -142,9 +132,9 @@ async function updateProfile() {
 
         const data = await res.json();
         user.value = data.user;
-        profileSuccess.value = 'Profile updated.';
+        profileSuccess.value = t('profile.profileUpdated');
     } catch {
-        profileErrors.value = { email: ['Network error.'] };
+        profileErrors.value = { email: [t('profile.networkError')] };
     } finally {
         profileLoading.value = false;
     }
@@ -177,7 +167,7 @@ async function updatePreferences() {
 
         if (!res.ok) {
             preferencesErrors.value = {
-                currency: ['Failed to update preferences.'],
+                currency: [t('profile.failedToUpdatePreferences')],
             };
             return;
         }
@@ -186,9 +176,9 @@ async function updatePreferences() {
         user.value = data.user;
         currency.value = data.user.currency ?? currency.value;
         updateAppCurrency(data.user.currency ?? currency.value);
-        preferencesSuccess.value = 'Preferences updated.';
+        preferencesSuccess.value = t('profile.preferencesUpdated');
     } catch {
-        preferencesErrors.value = { currency: ['Network error.'] };
+        preferencesErrors.value = { currency: [t('profile.networkError')] };
     } finally {
         preferencesLoading.value = false;
     }
@@ -221,23 +211,25 @@ async function updatePassword() {
 
         if (!res.ok) {
             passwordErrors.value = {
-                current_password: ['Failed to update password.'],
+                current_password: [t('profile.failedToUpdatePassword')],
             };
             return;
         }
-        passwordSuccess.value = 'Password updated.';
+        passwordSuccess.value = t('profile.passwordUpdated');
         currentPassword.value = '';
         newPassword.value = '';
         newPasswordConfirmation.value = '';
     } catch {
-        passwordErrors.value = { current_password: ['Network error.'] };
+        passwordErrors.value = {
+            current_password: [t('profile.networkError')],
+        };
     } finally {
         passwordLoading.value = false;
     }
 }
 
 async function deleteAccount() {
-    if (!confirm('This action is irreversible. Delete your account?')) return;
+    if (!confirm(t('profile.deleteAccountConfirm'))) return;
     deleteErrors.value = {};
     deleteLoading.value = true;
     try {
@@ -258,14 +250,15 @@ async function deleteAccount() {
         }
 
         if (!res.ok) {
-            deleteErrors.value = { password: ['Failed to delete account.'] };
+            deleteErrors.value = { password: [t('profile.failedToDeleteAccount')] };
             return;
         }
 
         document.body.dataset.authenticated = '0';
         router.push('/login');
-    } catch {
-        deleteErrors.value = { password: ['Network error.'] };
+    } 
+    catch {
+        deleteErrors.value = { password: [t('profile.networkError')] };
     } finally {
         deleteLoading.value = false;
     }
@@ -289,48 +282,47 @@ onMounted(fetchProfile);
 </script>
 
 <template>
-    <div class="mx-auto w-full max-w-6xl space-y-5 py-4 sm:space-y-6 sm:py-6">
+    <div class="mx-auto w-full max-w-6xl space-y-4 px-2 py-4 sm:space-y-6 sm:px-0 sm:py-6">
         <div class="flex items-end justify-between gap-4">
-            <div>
-                <h2 class="text-xl font-semibold text-white sm:text-2xl">
-                    Profile settings
+            <div class="min-w-0">
+                <h2 class="text-xl font-semibold text-slate-900 dark:text-white sm:text-2xl">
+                    {{ t('profile.settingsTitle') }}
                 </h2>
-                <p class="mt-1 text-sm text-slate-400">
-                    Manage your account details, preferences, and security.
+                <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                    {{ t('profile.settingsSubtitle') }}
                 </p>
             </div>
         </div>
 
         <section
             v-if="!isEmailVerified"
-            class="flex flex-col gap-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-5"
+            class="flex flex-col gap-4 rounded-2xl border border-red-600/30 bg-red-600/10 p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-5 dark:border-red-500/30 dark:bg-red-500/10"
         >
-            <div>
-                <p class="text-sm font-semibold text-red-300">
-                    Your email address is not verified yet.
+            <div class="min-w-0">
+                <p class="text-sm font-semibold text-red-800 dark:text-red-300">
+                    {{ t('profile.emailUnverifiedTitle') }}
                 </p>
                 <p
                     v-if="verificationStatus"
-                    class="mt-1 text-sm text-red-200/90"
+                    class="mt-1 text-sm text-red-800/90 dark:text-red-200/90"
                 >
                     {{ verificationStatus }}
                 </p>
-                <p v-else class="mt-1 text-sm text-red-200/80">
-                    You can still use the app, but verification helps keep your
-                    account secure.
+                <p v-else class="mt-1 text-sm text-red-800/80 dark:text-red-200/80">
+                    {{ t('profile.emailUnverifiedText') }}
                 </p>
             </div>
             <Button
                 variant="danger"
                 size="sm"
-                class="shrink-0"
+                class="w-full shrink-0 sm:w-auto"
                 :disabled="verificationLoading"
                 @click="resendVerificationEmail"
             >
                 {{
                     verificationLoading
-                        ? 'Sending...'
-                        : 'Resend verification email'
+                        ? t('profile.sendingVerification')
+                        : t('profile.resendVerification')
                 }}
             </Button>
         </section>
@@ -338,24 +330,24 @@ onMounted(fetchProfile);
         <div
             class="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start"
         >
-            <aside class="lg:sticky lg:top-6">
+            <aside class="w-full lg:sticky lg:top-6">
                 <nav
-                    class="flex gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/70 p-2 backdrop-blur-xl lg:flex-col lg:overflow-visible"
+                    class="flex gap-2 overflow-x-auto rounded-2xl border border-slate-900/10 dark:border-white/10 bg-white/70 p-2 backdrop-blur-xl lg:flex-col lg:overflow-visible dark:bg-slate-900/70"
                 >
                     <button
                         v-for="item in [
-                            { id: 'account', label: 'Account' },
-                            { id: 'preferences', label: 'Preferences' },
-                            { id: 'security', label: 'Security' },
-                            { id: 'danger', label: 'Danger zone' },
+                            { id: 'account', label: t('profile.account') },
+                            { id: 'preferences', label: t('profile.preferences') },
+                            { id: 'security', label: t('profile.security') },
+                            { id: 'danger', label: t('profile.dangerZone') },
                         ]"
                         :key="item.id"
                         type="button"
-                        class="shrink-0 rounded-xl px-3 py-2.5 text-sm font-medium transition lg:shrink"
+                        class="shrink-0 rounded-xl px-2.5 py-2 text-[11px] font-medium transition sm:px-3 sm:py-2.5 sm:text-sm lg:shrink"
                         :class="
                             activeSection === item.id
-                                ? 'bg-white text-slate-950 shadow-sm shadow-slate-950/30'
-                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                                ? 'bg-slate-900 text-white shadow-sm shadow-slate-500/30 dark:bg-white dark:text-slate-950 dark:shadow-black/30'
+                                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-900/5 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
                         "
                         @click="scrollToSection(item.id)"
                     >
@@ -369,32 +361,32 @@ onMounted(fetchProfile);
                     class="mt-3 hidden lg:inline-flex"
                     @click="logout"
                 >
-                    Log out
+                    {{ t('profile.logout') }}
                 </Button>
             </aside>
 
             <div class="min-w-0 space-y-5 sm:space-y-6">
                 <section
                     id="account"
-                    class="scroll-mt-28 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl shadow-slate-950/25 backdrop-blur-xl sm:p-5"
+                    class="scroll-mt-28 rounded-2xl border border-slate-900/10 dark:border-white/10 bg-slate-900/5 p-4 shadow-xl shadow-slate-500/25 backdrop-blur-xl sm:p-5 dark:bg-white/5 dark:shadow-black/25"
                 >
                     <div>
                         <p
-                            class="text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-300/70"
+                            class="text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-700/70 dark:text-cyan-300/70"
                         >
-                            Account
+                            {{ t('profile.account') }}
                         </p>
-                        <h3 class="mt-2 text-lg font-semibold text-white">
-                            Profile
+                        <h3 class="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                            {{ t('profile.profileCardTitle') }}
                         </h3>
-                        <p class="mt-1.5 text-sm text-slate-400">
-                            Your name and sign-in email address.
+                        <p class="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
+                            {{ t('profile.profileCardSubtitle') }}
                         </p>
                     </div>
 
                     <div
                         v-if="profileSuccess"
-                        class="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
+                        class="mt-5 rounded-xl border border-emerald-600/30 bg-emerald-600/10 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
                     >
                         {{ profileSuccess }}
                     </div>
@@ -403,43 +395,33 @@ onMounted(fetchProfile);
                         @submit.prevent="updateProfile"
                         class="mt-5 grid gap-4 sm:grid-cols-2"
                     >
-                        <div>
-                            <label
-                                for="name"
-                                class="mb-1.5 block text-sm font-medium text-slate-200"
-                                >Name</label
-                            >
-                            <input
-                                id="name"
+                        <div class="min-w-0">
+                            <InputText
                                 v-model="name"
+                                :label="t('profile.name')"
                                 type="text"
+                                :error="!!profileErrors.name"
                                 required
-                                :class="inputClass(!!profileErrors.name)"
                             />
                             <p
                                 v-if="profileErrors.name"
-                                class="mt-1.5 text-xs text-red-400"
+                                class="mt-1.5 text-xs text-red-600 dark:text-red-400"
                             >
                                 {{ profileErrors.name[0] }}
                             </p>
                         </div>
 
-                        <div>
-                            <label
-                                for="profile-email"
-                                class="mb-1.5 block text-sm font-medium text-slate-200"
-                                >Email</label
-                            >
-                            <input
-                                id="profile-email"
+                        <div class="min-w-0">
+                            <InputText
                                 v-model="email"
+                                :label="t('profile.email')"
                                 type="email"
+                                :error="!!profileErrors.email"
                                 required
-                                :class="inputClass(!!profileErrors.email)"
                             />
                             <p
                                 v-if="profileErrors.email"
-                                class="mt-1.5 text-xs text-red-400"
+                                class="mt-1.5 text-xs text-red-600 dark:text-red-400"
                             >
                                 {{ profileErrors.email[0] }}
                             </p>
@@ -448,12 +430,13 @@ onMounted(fetchProfile);
                         <div class="flex justify-end sm:col-span-2">
                             <Button
                                 type="submit"
+                                class="w-full sm:w-auto"
                                 :disabled="profileLoading"
                             >
                                 {{
                                     profileLoading
-                                        ? 'Saving...'
-                                        : 'Save changes'
+                                        ? t('profile.saving')
+                                        : t('profile.saveChanges')
                                 }}
                             </Button>
                         </div>
@@ -462,26 +445,25 @@ onMounted(fetchProfile);
 
                 <section
                     id="preferences"
-                    class="scroll-mt-28 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl shadow-slate-950/25 backdrop-blur-xl sm:p-5"
+                    class="scroll-mt-28 rounded-2xl border border-slate-900/10 dark:border-white/10 bg-slate-900/5 p-4 shadow-xl shadow-slate-500/25 backdrop-blur-xl sm:p-5 dark:bg-white/5 dark:shadow-black/25"
                 >
                     <div>
                         <p
-                            class="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300/70"
+                            class="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-700/70 dark:text-cyan-300/70"
                         >
-                            Preferences
+                            {{ t('profile.preferences') }}
                         </p>
-                        <h3 class="mt-1 text-lg font-semibold text-white">
-                            Display currency
+                        <h3 class="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+                            {{ t('profile.displayCurrency') }}
                         </h3>
-                        <p class="mt-1.5 text-sm text-slate-400">
-                            Dashboard totals and the forecast are converted
-                            into this currency.
+                        <p class="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
+                            {{ t('profile.displayCurrencySubtitle') }}
                         </p>
                     </div>
 
                     <div
                         v-if="preferencesSuccess"
-                        class="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
+                        class="mt-5 rounded-xl border border-emerald-600/30 bg-emerald-600/10 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
                     >
                         {{ preferencesSuccess }}
                     </div>
@@ -490,15 +472,15 @@ onMounted(fetchProfile);
                         @submit.prevent="updatePreferences"
                         class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
                     >
-                        <div class="w-full sm:max-w-xs">
+                        <div class="w-full min-w-0 sm:max-w-xs">
                             <InputSelect
                                 v-model="currency"
-                                label="Preferred currency"
+                                :label="t('profile.preferredCurrency')"
                                 :options="currencyOptions"
                             />
                             <p
                                 v-if="preferencesErrors.currency"
-                                class="mt-1.5 text-xs text-red-400"
+                                class="mt-1.5 text-xs text-red-600 dark:text-red-400"
                             >
                                 {{ preferencesErrors.currency[0] }}
                             </p>
@@ -507,12 +489,13 @@ onMounted(fetchProfile);
                         <div class="flex justify-end sm:shrink-0">
                             <Button
                                 type="submit"
+                                class="w-full sm:w-auto"
                                 :disabled="preferencesLoading"
                             >
                                 {{
                                     preferencesLoading
-                                        ? 'Saving...'
-                                        : 'Save preferences'
+                                        ? t('profile.savePreferencesLoading')
+                                        : t('profile.savePreferences')
                                 }}
                             </Button>
                         </div>
@@ -521,25 +504,25 @@ onMounted(fetchProfile);
 
                 <section
                     id="security"
-                    class="scroll-mt-28 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl shadow-slate-950/25 backdrop-blur-xl sm:p-5"
+                    class="scroll-mt-28 rounded-2xl border border-slate-900/10 dark:border-white/10 bg-slate-900/5 p-4 shadow-xl shadow-slate-500/25 backdrop-blur-xl sm:p-5 dark:bg-white/5 dark:shadow-black/25"
                 >
                     <div>
                         <p
-                            class="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300/70"
+                            class="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-700/70 dark:text-cyan-300/70"
                         >
-                            Security
+                            {{ t('profile.security') }}
                         </p>
-                        <h3 class="mt-1 text-lg font-semibold text-white">
-                            Change password
+                        <h3 class="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+                            {{ t('profile.changePassword') }}
                         </h3>
-                        <p class="mt-1.5 text-sm text-slate-400">
-                            Choose a strong password you don't use elsewhere.
+                        <p class="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
+                            {{ t('profile.changePasswordSubtitle') }}
                         </p>
                     </div>
 
                     <div
                         v-if="passwordSuccess"
-                        class="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
+                        class="mt-5 rounded-xl border border-emerald-600/30 bg-emerald-600/10 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
                     >
                         {{ passwordSuccess }}
                     </div>
@@ -548,78 +531,57 @@ onMounted(fetchProfile);
                         @submit.prevent="updatePassword"
                         class="mt-5 grid gap-4 sm:grid-cols-2"
                     >
-                        <div>
-                            <label
-                                for="current-password"
-                                class="mb-1.5 block text-sm font-medium text-slate-200"
-                                >Current password</label
-                            >
-                            <input
-                                id="current-password"
+                        <div class="min-w-0">
+                            <InputText
                                 v-model="currentPassword"
+                                :label="t('profile.currentPassword')"
                                 type="password"
+                                :error="!!passwordErrors.current_password"
                                 required
-                                autocomplete="current-password"
-                                :class="
-                                    inputClass(
-                                        !!passwordErrors.current_password,
-                                    )
-                                "
                             />
                             <p
                                 v-if="passwordErrors.current_password"
-                                class="mt-1.5 text-xs text-red-400"
+                                class="mt-1.5 text-xs text-red-600 dark:text-red-400"
                             >
                                 {{ passwordErrors.current_password[0] }}
                             </p>
                         </div>
 
-                        <div>
-                            <label
-                                for="new-password"
-                                class="mb-1.5 block text-sm font-medium text-slate-200"
-                                >New password</label
-                            >
-                            <input
-                                id="new-password"
+                        <div class="min-w-0">
+                            <InputText
                                 v-model="newPassword"
+                                :label="t('profile.newPassword')"
                                 type="password"
+                                :error="!!passwordErrors.password"
                                 required
-                                autocomplete="new-password"
-                                :class="
-                                    inputClass(!!passwordErrors.password)
-                                "
                             />
                             <p
                                 v-if="passwordErrors.password"
-                                class="mt-1.5 text-xs text-red-400"
+                                class="mt-1.5 text-xs text-red-600 dark:text-red-400"
                             >
                                 {{ passwordErrors.password[0] }}
                             </p>
                         </div>
 
-                        <div>
-                            <label
-                                for="new-password-confirmation"
-                                class="mb-1.5 block text-sm font-medium text-slate-200"
-                                >Confirm new password</label
-                            >
-                            <input
-                                id="new-password-confirmation"
+                        <div class="min-w-0">
+                            <InputText
                                 v-model="newPasswordConfirmation"
+                                :label="t('profile.confirmNewPassword')"
                                 type="password"
                                 required
-                                autocomplete="new-password"
-                                class="w-full rounded-xl border border-white/10 bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40"
                             />
                         </div>
 
                         <div class="flex justify-end sm:col-span-2">
-                            <Button type="submit" :disabled="passwordLoading">
+                            <Button
+                                type="submit"
+                                class="w-full sm:w-auto"
+                                :disabled="passwordLoading"
+                            >
                                 {{
                                     passwordLoading
-                                        ? 'Updating...'
-                                        : 'Update password'
+                                        ? t('profile.updatingPassword')
+                                        : t('profile.updatePassword')
                                 }}
                             </Button>
                         </div>
@@ -628,20 +590,19 @@ onMounted(fetchProfile);
 
                 <section
                     id="danger"
-                    class="scroll-mt-28 rounded-2xl border border-red-500/20 bg-red-500/5 p-4 shadow-xl shadow-slate-950/25 backdrop-blur-xl sm:p-5"
+                    class="scroll-mt-28 rounded-2xl border border-red-600/20 bg-red-600/5 p-4 shadow-xl shadow-slate-500/25 backdrop-blur-xl sm:p-5 dark:border-red-500/20 dark:bg-red-500/5 dark:shadow-black/25"
                 >
                     <div>
                         <p
-                            class="text-xs font-semibold uppercase tracking-[0.25em] text-red-400"
+                            class="text-xs font-semibold uppercase tracking-[0.25em] text-red-600 dark:text-red-400"
                         >
-                            Danger zone
+                            {{ t('profile.dangerZone') }}
                         </p>
-                        <h3 class="mt-1 text-lg font-semibold text-white">
-                            Delete account
+                        <h3 class="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+                            {{ t('profile.deleteAccount') }}
                         </h3>
-                        <p class="mt-1.5 text-sm text-slate-400">
-                            Permanently delete your account and all associated
-                            data. This cannot be undone.
+                        <p class="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
+                            {{ t('profile.deleteAccountSubtitle') }}
                         </p>
                     </div>
 
@@ -649,23 +610,17 @@ onMounted(fetchProfile);
                         @submit.prevent="deleteAccount"
                         class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
                     >
-                        <div class="w-full sm:max-w-xs">
-                            <label
-                                for="delete-password"
-                                class="mb-1.5 block text-sm font-medium text-slate-200"
-                                >Confirm your password</label
-                            >
-                            <input
-                                id="delete-password"
+                        <div class="w-full min-w-0 sm:max-w-xs">
+                            <InputText
                                 v-model="deletePassword"
+                                :label="t('profile.confirmPasswordDelete')"
                                 type="password"
+                                :error="!!deleteErrors.password"
                                 required
-                                autocomplete="current-password"
-                                :class="inputClass(!!deleteErrors.password)"
                             />
                             <p
                                 v-if="deleteErrors.password"
-                                class="mt-1.5 text-xs text-red-400"
+                                class="mt-1.5 text-xs text-red-600 dark:text-red-400"
                             >
                                 {{ deleteErrors.password[0] }}
                             </p>
@@ -675,12 +630,13 @@ onMounted(fetchProfile);
                             <Button
                                 type="submit"
                                 variant="danger"
+                                class="w-full sm:w-auto"
                                 :disabled="deleteLoading"
                             >
                                 {{
                                     deleteLoading
-                                        ? 'Deleting...'
-                                        : 'Delete account'
+                                        ? t('profile.deletingAccount')
+                                        : t('profile.deleteAccountButton')
                                 }}
                             </Button>
                         </div>
@@ -688,7 +644,9 @@ onMounted(fetchProfile);
                 </section>
 
                 <div class="flex justify-center lg:hidden">
-                    <Button variant="outline" @click="logout">Log out</Button>
+                    <Button variant="outline" @click="logout">
+                        {{ t('profile.logout') }}
+                    </Button>
                 </div>
             </div>
         </div>

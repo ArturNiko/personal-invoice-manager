@@ -30,7 +30,7 @@ const handleInput = (event: Event) => {
             :disabled="disabled"
             :min="min"
             :step="step"
-            class="w-full rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="w-full rounded-2xl border border-slate-900/10 bg-slate-100/50 px-4 py-3 text-slate-900 outline-none placeholder:text-slate-500 focus:border-cyan-700/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-950/50 dark:text-white dark:focus:border-cyan-400/50"
             @input="handleInput"
         />
     </InputLabel>

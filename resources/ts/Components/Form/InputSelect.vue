@@ -27,7 +27,7 @@ const handleChange = (event: Event) => {
             :value="modelValue"
             :disabled="disabled"
             :required="required"
-            class="input-select w-full rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 pr-11 text-white outline-none appearance-none focus:border-cyan-400/50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="input-select w-full rounded-2xl border border-slate-900/10 bg-slate-100/50 px-4 py-3 pr-11 text-slate-900 outline-none appearance-none focus:border-cyan-700/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-950/50 dark:text-white dark:focus:border-cyan-400/50"
             @change="handleChange"
         >
             <option
@@ -47,5 +47,9 @@ const handleChange = (event: Event) => {
     background-repeat: no-repeat;
     background-position: right 0.85rem center;
     background-size: 1rem 1rem;
+}
+
+html.light .input-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
 }
 </style>

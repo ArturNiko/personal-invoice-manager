@@ -1,1 +1,94 @@
 @import "tailwindcss";
+
+/*
+ * Theme system
+ * ------------
+ * Themes are authored light-first with explicit Tailwind variants:
+ *
+ *     <div class="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
+ *
+ * The `dark:`/`light:` variants below are wired to the `.light`/`.dark`
+ * classes that `useTheme` toggles on <html>, so they follow the app's theme
+ * switch instead of the OS `prefers-color-scheme` media query.
+ *
+ * Layout/system tokens (background, color-scheme, icon masks) live here so a
+ * few JS-rendered surfaces (FullCalendar, icons) can still be themed.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant light (&:where(.light, .light *));
+
+:root {
+    color-scheme: light;
+    --icon-color-dark: #1e293b;
+    --icon-color-light: #ffffff;
+    --app-bg: #edf3f9;
+    --app-surface: rgba(255, 255, 255, 0.8);
+    --app-surface-strong: rgba(255, 255, 255, 0.92);
+    --app-border: rgba(148, 163, 184, 0.35);
+    --app-shadow: 0 12px 30px -18px rgba(15, 23, 42, 0.2);
+}
+
+html.light {
+    color-scheme: light;
+    background: var(--app-bg);
+
+    --icon-color-dark: #1e293b;
+    --icon-color-light: #ffffff;
+    --app-bg: #edf3f9;
+    --app-surface: rgba(255, 255, 255, 0.8);
+    --app-surface-strong: rgba(255, 255, 255, 0.92);
+    --app-border: rgba(148, 163, 184, 0.35);
+    --app-shadow: 0 12px 30px -18px rgba(15, 23, 42, 0.2);
+}
+
+html.dark {
+    color-scheme: dark;
+    background: var(--app-bg);
+
+    --icon-color-dark: #ffffff;
+    --icon-color-light: #0f172a;
+    --app-bg: #020817;
+    --app-surface: rgba(15, 23, 42, 0.72);
+    --app-surface-strong: rgba(15, 23, 42, 0.88);
+    --app-border: rgba(148, 163, 184, 0.18);
+    --app-shadow: 0 18px 45px -22px rgba(15, 23, 42, 0.6);
+}
+
+/* Background gradient behind the app shell. */
+.app-aurora {
+    background-image:
+        radial-gradient(
+            circle at top left,
+            rgba(99, 102, 241, 0.12),
+            transparent 38%
+        ),
+        radial-gradient(
+            circle at top right,
+            rgba(16, 185, 129, 0.1),
+            transparent 34%
+        ),
+        linear-gradient(180deg, #f8fafc 0%, #e7edf5 100%);
+}
+
+html.dark .app-aurora {
+    background-image:
+        radial-gradient(
+            circle at top left,
+            rgba(99, 102, 241, 0.26),
+            transparent 35%
+        ),
+        radial-gradient(
+            circle at top right,
+            rgba(16, 185, 129, 0.18),
+            transparent 32%
+        ),
+        linear-gradient(180deg, rgba(15, 23, 42, 1) 0%, rgba(2, 6, 23, 1) 100%);
+}
+
+html.light body,
+html.light #app,
+html.dark body,
+html.dark #app {
+    background: var(--app-bg);
+}

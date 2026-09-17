@@ -4,12 +4,9 @@ import axios from 'axios';
 import { useRoute, useRouter } from 'vue-router';
 
 import { normalizeDateValue, formatMoney } from '@/Utils/Helpers';
-import { calculateOccurrencesCount } from '@/Utils/Occurrences';
+import { locale, t } from '@/i18n';
 import {
     currencyOptions,
-    invoiceRecurrenceOptions,
-    invoiceStatusOptions,
-    invoiceTypeOptions,
 } from '@/Utils/Consts';
 
 import InputText from '@/Components/Form/InputText.vue';
@@ -52,6 +49,27 @@ const createEmptyForm = (): InvoiceForm => ({
 
 const form = reactive<InvoiceForm>(createEmptyForm());
 
+const invoiceTypeOptions = computed(() => [
+    { label: t('invoices.oneTime'), value: InvoiceTypes.ONE_TIME },
+    { label: t('invoices.recurring'), value: InvoiceTypes.RECURRING },
+]);
+
+const invoiceStatusOptions = computed(() => [
+    { label: t('invoices.pending'), value: InvoiceStatuses.PENDING },
+    { label: t('invoices.paid'), value: InvoiceStatuses.PAID },
+    { label: t('invoices.overdue'), value: InvoiceStatuses.OVERDUE },
+]);
+
+const invoiceRecurrenceOptions = computed(() => [
+    { label: t('invoices.none'), value: InvoiceRecurrence.NONE },
+    { label: t('invoices.weekly'), value: InvoiceRecurrence.WEEKLY },
+    { label: t('invoices.biweekly'), value: InvoiceRecurrence.BIWEEKLY },
+    { label: t('invoices.monthly'), value: InvoiceRecurrence.MONTHLY },
+    { label: t('invoices.quarterly'), value: InvoiceRecurrence.QUARTERLY },
+    { label: t('invoices.semiannual'), value: InvoiceRecurrence.SEMIANNUAL },
+    { label: t('invoices.yearly'), value: InvoiceRecurrence.YEARLY },
+]);
+
 const syncFormFromInvoice = (currentInvoice: InvoiceEvent) => {
     form.title = currentInvoice.title;
     form.type = currentInvoice.type;
@@ -69,7 +87,7 @@ const loadInvoice = async () => {
     const invoiceId = route.params.id;
 
     if (typeof invoiceId !== 'string') {
-        loadError.value = 'Missing invoice id.';
+        loadError.value = t('invoices.missingInvoiceId');
         loading.value = false;
         return;
     }
@@ -82,7 +100,7 @@ const loadInvoice = async () => {
         syncFormFromInvoice(response.data);
     } catch (error: any) {
         loadError.value =
-            error?.response?.data?.message ?? 'Failed to load invoice.';
+            error?.response?.data?.message ?? t('invoices.failedToLoadInvoice');
     } finally {
         loading.value = false;
     }
@@ -98,31 +116,71 @@ const isRecurringRangeInvalid = computed(() => {
 
 const recurringPreviewLabel = computed(() => {
     if (!isRecurring.value)
-        return `Price: ${formatMoney(Number(form.price || '0'), form.currency)}`;
+        return `${t('invoices.previewPrice')}: ${formatMoney(Number(form.price || '0'), form.currency)}`;
 
-    if (form.start_date && !form.end_date) return 'Recurring schedule: Endless';
+    if (form.start_date && !form.end_date)
+        return t('invoices.recurringScheduleEndless');
     if (!form.start_date || !form.end_date)
-        return 'Recurring schedule: not set';
+        return t('invoices.recurringScheduleUnset');
 
-    return `Occurrences: ${calculateOccurrencesCount(form.start_date, form.end_date, form.recurrence)}`;
+    return `${t('invoices.previewSchedule')}: ${getRecurrenceLabel(form.recurrence)}`;
 });
 
-const priceInputLabel = computed(() =>
-    isRecurring.value ? 'Occurrence price' : 'Price',
-);
+const getTypeLabel = (type: InvoiceTypes) =>
+    type === InvoiceTypes.RECURRING ? t('invoices.recurring') : t('invoices.oneTime');
+
+const getStatusLabel = (status: InvoiceStatuses) => {
+    switch (status) {
+        case InvoiceStatuses.PAID:
+            return t('invoices.paid');
+        case InvoiceStatuses.OVERDUE:
+            return t('invoices.overdue');
+        default:
+            return t('invoices.pending');
+    }
+};
+
+const getCurrencyLabel = (currency: Currency) => currency;
+
 const dateInputLabel = computed(() =>
-    isRecurring.value ? 'Start date' : 'Date',
+    isRecurring.value ? t('invoices.startDate') : t('invoices.date'),
+);
+
+const getRecurrenceLabel = (recurrence: InvoiceRecurrence) => {
+    switch (recurrence) {
+        case InvoiceRecurrence.WEEKLY:
+            return t('invoices.weekly');
+        case InvoiceRecurrence.BIWEEKLY:
+            return t('invoices.biweekly');
+        case InvoiceRecurrence.MONTHLY:
+            return t('invoices.monthly');
+        case InvoiceRecurrence.QUARTERLY:
+            return t('invoices.quarterly');
+        case InvoiceRecurrence.SEMIANNUAL:
+            return t('invoices.semiannual');
+        case InvoiceRecurrence.YEARLY:
+            return t('invoices.yearly');
+        default:
+            return t('invoices.none');
+    }
+};
+
+const saveButtonLabel = computed(() =>
+    locale.value === 'de' ? 'Rechnung speichern' : 'Save invoice',
+);
+
+const priceInputLabel = computed(() =>
+    isRecurring.value ? t('invoices.occurrencePrice') : t('invoices.price'),
 );
 
 const submitForm = async () => {
     if (!invoice.value?.id) {
-        submitError.value = 'Missing invoice id.';
+        submitError.value = t('invoices.missingInvoiceId');
         return;
     }
 
     if (isRecurringRangeInvalid.value) {
-        submitError.value =
-            'Recurring end date must be on or after the start date.';
+        submitError.value = t('invoices.recurringRangeError');
         return;
     }
 
@@ -144,11 +202,11 @@ const submitForm = async () => {
 
     try {
         await axios.put(`/invoices/${invoice.value.id}`, payload);
-        submitSuccess.value = 'Invoice updated successfully.';
+        submitSuccess.value = t('invoices.invoiceUpdated');
         await router.push({ path: '/list', query: { updated: '1' } });
     } catch (error: any) {
         submitError.value =
-            error?.response?.data?.message ?? 'Failed to update invoice.';
+            error?.response?.data?.message ?? t('invoices.failedToUpdateInvoice');
     } finally {
         isSubmitting.value = false;
     }
@@ -179,7 +237,7 @@ const confirmDeleteInvoice = async () => {
         await router.push({ path: '/list', query: { deleted: '1' } });
     } catch (error: any) {
         submitError.value =
-            error?.response?.data?.message ?? 'Failed to delete invoice.';
+            error?.response?.data?.message ?? t('invoices.failedToDeleteInvoice');
     } finally {
         isDeleting.value = false;
     }
@@ -190,26 +248,26 @@ onMounted(loadInvoice);
 
 <template>
     <section
-        class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
+        class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-900/5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40"
     >
         <div
             v-if="loading"
-            class="rounded-[2rem] border border-white/10 bg-white/5 p-6 text-slate-300"
+            class="rounded-[2rem] border border-slate-900/10 bg-slate-900/5 p-6 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
         >
-            Loading invoice...
+            {{ t('invoices.loadingInvoice') }}
         </div>
 
         <div
             v-else-if="loadError"
-            class="rounded-[2rem] border border-red-400/30 bg-red-500/10 p-6 text-red-100"
+            class="rounded-[2rem] border border-red-600/30 bg-red-600/10 p-6 text-red-800 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-100"
         >
             {{ loadError }}
         </div>
         <div v-else>
-            <div class="border-b border-white/10 px-5 py-4 sm:px-6">
-                <h2 class="text-lg font-semibold text-white">Edit invoice</h2>
-                <p class="text-sm text-slate-400">
-                    Update invoice details, status, or delete the record.
+            <div class="border-b border-slate-900/10 px-5 py-4 sm:px-6 dark:border-white/10">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('invoices.editInvoice') }}</h2>
+                <p class="text-sm text-slate-600 dark:text-slate-400">
+                    {{ t('invoices.editInvoiceSubtitle') }}
                 </p>
             </div>
 
@@ -222,9 +280,9 @@ onMounted(loadInvoice);
                         <div class="grid gap-4 sm:grid-cols-2">
                             <InputText
                                 v-model="form.title"
-                                label="Title"
+                                :label="t('invoices.title')"
                                 required
-                                placeholder="Subscription"
+                                :placeholder="t('invoices.titlePlaceholder')"
                             />
                             <InputBalance
                                 v-model="form.price"
@@ -238,12 +296,12 @@ onMounted(loadInvoice);
                         <div class="grid gap-4 sm:grid-cols-2">
                             <InputSelect
                                 v-model="form.type"
-                                label="Type"
+                                :label="t('invoices.type')"
                                 :options="invoiceTypeOptions"
                             />
                             <InputSelect
                                 v-model="form.status"
-                                label="Status"
+                                :label="t('invoices.status')"
                                 :options="invoiceStatusOptions"
                             />
                         </div>
@@ -257,21 +315,20 @@ onMounted(loadInvoice);
                             <InputDate
                                 v-if="isRecurring"
                                 v-model="form.end_date"
-                                label="End date"
+                                :label="t('invoices.endDate')"
                             />
                         </div>
 
                         <p
                             v-if="isRecurringRangeInvalid"
-                            class="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100"
+                            class="rounded-xl border border-red-600/30 bg-red-600/10 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-100"
                         >
-                            Recurring end date must be on or after the start
-                            date.
+                            {{ t('invoices.recurringRangeError') }}
                         </p>
 
                         <InputSelect
                             v-model="form.recurrence"
-                            label="Recurrence"
+                            :label="t('invoices.recurrence')"
                             :options="invoiceRecurrenceOptions"
                             :disabled="!isRecurring"
                         />
@@ -279,39 +336,38 @@ onMounted(loadInvoice);
                 </div>
 
                 <aside
-                    class="rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-5"
+                    class="rounded-2xl border border-dashed border-slate-900/10 bg-slate-100/30 p-5 dark:border-white/10 dark:bg-slate-950/30"
                 >
                     <p
-                        class="text-xs uppercase tracking-[0.25em] text-slate-400"
+                        class="text-xs uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400"
                     >
-                        Preview
+                        {{ t('invoices.previewSummary') }}
                     </p>
-                    <h3 class="mt-2 text-xl font-semibold text-white">
-                        Edit invoice
+                    <h3 class="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
+                        {{ t('invoices.editInvoice') }}
                     </h3>
-                    <p class="mt-2 text-sm leading-6 text-slate-400">
-                        The form adjusts automatically for one-time and
-                        recurring invoices.
+                    <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                        {{ t('invoices.invoiceManualDescription') }}
                     </p>
 
-                    <div class="mt-6 space-y-3 text-sm text-slate-300">
+                    <div class="mt-6 space-y-3 text-sm text-slate-700 dark:text-slate-300">
                         <div
-                            class="rounded-xl border border-white/10 bg-white/5 p-3"
+                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                         >
-                            Type: {{ form.type }}
+                            {{ t('invoices.previewType') }}: {{ getTypeLabel(form.type) }}
                         </div>
                         <div
-                            class="rounded-xl border border-white/10 bg-white/5 p-3"
+                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                         >
-                            Status: {{ form.status }}
+                            {{ t('invoices.previewStatus') }}: {{ getStatusLabel(form.status) }}
                         </div>
                         <div
-                            class="rounded-xl border border-white/10 bg-white/5 p-3"
+                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                         >
-                            Currency: {{ form.currency }}
+                            {{ t('invoices.previewCurrency') }}: {{ getCurrencyLabel(form.currency) }}
                         </div>
                         <div
-                            class="rounded-xl border border-white/10 bg-white/5 p-3"
+                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                         >
                             {{ recurringPreviewLabel }}
                         </div>
@@ -319,13 +375,13 @@ onMounted(loadInvoice);
 
                     <p
                         v-if="submitError"
-                        class="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100"
+                        class="mt-6 rounded-xl border border-red-600/30 bg-red-600/10 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-100"
                     >
                         {{ submitError }}
                     </p>
                     <p
                         v-if="submitSuccess"
-                        class="mt-6 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100"
+                        class="mt-6 rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-3 text-sm text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-100"
                     >
                         {{ submitSuccess }}
                     </p>
@@ -337,7 +393,7 @@ onMounted(loadInvoice);
                         block
                         class="mt-6"
                     >
-                        {{ isSubmitting ? 'Saving...' : 'Save invoice' }}
+                        {{ isSubmitting ? t('invoices.saving') : saveButtonLabel }}
                     </Button>
 
                     <Button
@@ -349,17 +405,17 @@ onMounted(loadInvoice);
                         class="mt-3"
                         @click="deleteInvoice"
                     >
-                        {{ isDeleting ? 'Deleting...' : 'Delete invoice' }}
+                        {{ isDeleting ? t('invoices.deleting') : t('invoices.deleteInvoiceButton') }}
                     </Button>
                 </aside>
             </form>
             <ConfirmationDialog
                 :open="isDeleteDialogOpen"
                 :busy="isDeleting"
-                title="Delete invoice?"
-                message="This action cannot be undone. The invoice will be permanently removed and cannot be recovered."
-                confirm-label="Delete"
-                cancel-label="Keep it"
+                :title="t('invoices.deleteInvoice')"
+                :message="t('invoices.deleteWarning')"
+                :confirm-label="t('invoices.delete')"
+                :cancel-label="t('invoices.keepIt')"
                 @close="closeDeleteDialog"
                 @confirm="confirmDeleteInvoice"
             />

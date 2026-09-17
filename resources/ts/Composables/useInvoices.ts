@@ -2,7 +2,6 @@ import axios from 'axios';
 import { computed, ref } from 'vue';
 
 import type { InvoiceIndexResponse, InvoiceEvent } from '@/Types/Invoice';
-import { getCurrencySymbol } from '@/Utils/Currency';
 import { convertAmount } from '@/Utils/ExchangeRates';
 import { appCurrency } from '@/Composables/useAppSettings';
 
@@ -24,20 +23,6 @@ const totalAmount = computed(() =>
         0,
     ),
 );
-const totalCurrency = computed(() => appCurrency.value);
-const totalAmountDisplay = computed(() => {
-    if (!invoices.value.length) {
-        return '0';
-    }
-
-    return `${getCurrencySymbol(totalCurrency.value)}${totalAmount.value.toLocaleString(
-        'en-US',
-        {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        },
-    )}`;
-});
 
 export const buildInvoiceQuery = (
     query: Record<string, unknown>,
@@ -96,7 +81,6 @@ export const useInvoices = () => {
         invoices,
         invoiceCount,
         totalAmount,
-        totalAmountDisplay,
         loading,
         error,
         fetchInvoices,

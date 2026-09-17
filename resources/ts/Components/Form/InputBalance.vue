@@ -34,7 +34,7 @@ const handleCurrencyChange = (event: Event) => {
 <template>
     <InputLabel :label="label">
         <div
-            class="grid grid-cols-[minmax(0,1fr)_7.5rem] overflow-hidden rounded-2xl border border-white/10 bg-slate-950/50 shadow-sm shadow-slate-950/20"
+            class="grid grid-cols-[minmax(0,1fr)_7.5rem] overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-100/50 shadow-sm shadow-slate-500/20 dark:border-white/10 dark:bg-slate-950/50 dark:shadow-black/20"
         >
             <div class="flex min-w-0 items-center">
                 <input
@@ -45,17 +45,17 @@ const handleCurrencyChange = (event: Event) => {
                     :disabled="disabled"
                     :min="min"
                     :step="step"
-                    class="w-full border-0 bg-transparent px-4 py-3 text-white outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="w-full border-0 bg-transparent px-4 py-3 text-slate-900 outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-50 dark:text-white"
                     @input="handleAmountInput"
                 />
             </div>
 
-            <div class="border-l border-white/10 bg-slate-900/40">
+            <div class="border-l border-slate-900/10 bg-white/40 dark:border-white/10 dark:bg-slate-900/40">
                 <span class="sr-only">{{ currencyLabel ?? 'Currency' }}</span>
                 <select
                     :value="currency"
                     :disabled="disabled"
-                    class="currency-select h-full w-full border-0 bg-transparent px-3 py-3 pr-9 text-white outline-none appearance-none disabled:cursor-not-allowed disabled:opacity-50"
+                    class="currency-select h-full w-full border-0 bg-transparent px-3 py-3 pr-9 text-slate-900 outline-none appearance-none disabled:cursor-not-allowed disabled:opacity-50 dark:text-white"
                     @change="handleCurrencyChange"
                 >
                     <option
@@ -89,5 +89,9 @@ input[type='number'] {
     background-repeat: no-repeat;
     background-position: right 0.85rem center;
     background-size: 1rem 1rem;
+}
+
+html.light .currency-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
 }
 </style>

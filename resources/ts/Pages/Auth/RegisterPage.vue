@@ -2,6 +2,10 @@
 import axios from 'axios';
 import { ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
+import { t } from '@/i18n';
+
+import InputText from '@/Components/Form/InputText.vue';
+
 
 const router = useRouter();
 const csrfToken =
@@ -50,8 +54,7 @@ const submit = async () => {
     catch (error) {
         if (axios.isAxiosError(error)) {
             if (error.response?.status === 419) {
-                generalError.value =
-                    'Your session expired. Please refresh the page and try again.';
+                generalError.value = t('auth.sessionExpired');
                 return;
             }
 
@@ -67,7 +70,7 @@ const submit = async () => {
             }
         }
 
-        generalError.value = 'Something went wrong. Please try again.';
+        generalError.value = t('auth.somethingWentWrong');
     } 
     finally {
         loading.value = false;
@@ -77,135 +80,104 @@ const submit = async () => {
 
 <template>
     <div
-        class="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10 text-slate-100"
+        class="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10 text-slate-900 dark:bg-slate-950 dark:text-slate-100"
     >
         <div
-            class="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-slate-950/50 backdrop-blur-xl sm:p-8"
+            class="w-full max-w-md rounded-3xl border border-slate-900/10 bg-slate-900/5 p-6 shadow-2xl shadow-slate-500/50 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/50 sm:p-8"
         >
             <div class="mb-8 text-center">
                 <p
-                    class="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-300/80"
+                    class="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700/80 dark:text-cyan-300/80"
                 >
-                    Create account
+                    {{ t('auth.createAccount') }}
                 </p>
-                <h1 class="mt-3 text-3xl font-semibold text-white">Register</h1>
+                <h1 class="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">
+                    {{ t('auth.register') }}
+                </h1>
             </div>
 
             <div
                 v-if="generalError"
-                class="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+                class="mb-5 rounded-xl border border-red-600/30 bg-red-600/10 px-4 py-3 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300"
             >
                 {{ generalError }}
             </div>
 
             <form @submit.prevent="submit" class="space-y-5">
                 <div>
-                    <label
-                        for="name"
-                        class="mb-2 block text-sm font-medium text-slate-200"
-                        >Name</label
-                    >
-                    <input
-                        id="name"
+                    <InputText
                         v-model="name"
+                        :label="t('profile.name')"
                         type="text"
+                        :error="!!errors.name"
                         required
-                        autocomplete="name"
-                        class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                        :class="
-                            errors.name
-                                ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40'
-                                : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'
-                        "
                     />
-                    <p v-if="errors.name" class="mt-1.5 text-xs text-red-400">
+                    <p v-if="errors.name" class="mt-1.5 text-xs text-red-600 dark:text-red-400">
                         {{ errors.name[0] }}
                     </p>
                 </div>
 
                 <div>
-                    <label
-                        for="email"
-                        class="mb-2 block text-sm font-medium text-slate-200"
-                        >Email</label
-                    >
-                    <input
-                        id="email"
+                    <InputText
                         v-model="email"
+                        :label="t('auth.email')"
                         type="email"
+                        :error="!!errors.email"
                         required
-                        autocomplete="email"
-                        class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                        :class="
-                            errors.email
-                                ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40'
-                                : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'
-                        "
                     />
-                    <p v-if="errors.email" class="mt-1.5 text-xs text-red-400">
+                    <p v-if="errors.email" class="mt-1.5 text-xs text-red-600 dark:text-red-400">
                         {{ errors.email[0] }}
                     </p>
                 </div>
 
                 <div>
-                    <label
-                        for="password"
-                        class="mb-2 block text-sm font-medium text-slate-200"
-                        >Password</label
-                    >
-                    <input
-                        id="password"
+                    <InputText
                         v-model="password"
+                        :label="t('auth.password')"
                         type="password"
+                        :error="!!errors.password"
                         required
-                        autocomplete="new-password"
-                        class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                        :class="
-                            errors.password
-                                ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40'
-                                : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'
-                        "
                     />
                     <p
                         v-if="errors.password"
-                        class="mt-1.5 text-xs text-red-400"
+                        class="mt-1.5 text-xs text-red-600 dark:text-red-400"
                     >
                         {{ errors.password[0] }}
                     </p>
                 </div>
 
                 <div>
-                    <label
-                        for="password_confirmation"
-                        class="mb-2 block text-sm font-medium text-slate-200"
-                        >Confirm password</label
-                    >
-                    <input
-                        id="password_confirmation"
+                    <InputText
                         v-model="passwordConfirmation"
+                        :label="t('auth.confirmPassword')"
                         type="password"
+                        :error="!!errors.password_confirmation"
                         required
-                        autocomplete="new-password"
-                        class="w-full rounded-xl border border-white/10 bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40"
                     />
+                    <p
+                        v-if="errors.password_confirmation"
+                        class="mt-1.5 text-xs text-red-600 dark:text-red-400"
+                    >
+                        {{ errors.password_confirmation[0] }}
+                    </p>
                 </div>
 
                 <button
                     type="submit"
                     :disabled="loading"
-                    class="w-full rounded-xl bg-cyan-400 px-4 py-2.5 font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
+                    class="w-full rounded-xl bg-cyan-700 px-4 py-2.5 font-semibold text-white transition hover:bg-cyan-800 disabled:opacity-50 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
                 >
-                    {{ loading ? 'Creating account...' : 'Register' }}
+                    {{ loading ? t('auth.registering') : t('auth.register') }}
                 </button>
             </form>
 
-            <div class="mt-6 text-center text-sm text-slate-300">
-                Already have an account?
+            <div class="mt-6 text-center text-sm text-slate-700 dark:text-slate-300">
+                {{ t('auth.alreadyHaveAccount') }}
                 <RouterLink
                     to="/login"
-                    class="font-semibold text-cyan-300 hover:text-cyan-200"
+                    class="font-semibold text-cyan-700 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200"
                 >
-                    Log in
+                    {{ t('auth.login') }}
                 </RouterLink>
             </div>
         </div>

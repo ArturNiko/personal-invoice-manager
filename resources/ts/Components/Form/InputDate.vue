@@ -24,7 +24,7 @@ const handleInput = (event: Event) => {
             type="date"
             :required="required"
             :disabled="disabled"
-            class="w-full rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 text-white outline-none focus:border-cyan-400/50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="w-full rounded-2xl border border-slate-900/10 bg-slate-100/50 px-4 py-3 text-slate-900 outline-none focus:border-cyan-700/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-950/50 dark:text-white dark:focus:border-cyan-400/50"
             @input="handleInput"
         />
     </InputLabel>
@@ -32,7 +32,7 @@ const handleInput = (event: Event) => {
 
 <style scoped>
 input[type='date'] {
-    color-scheme: dark;
+    color-scheme: inherit;
 }
 
 input[type='date']::-webkit-calendar-picker-indicator {

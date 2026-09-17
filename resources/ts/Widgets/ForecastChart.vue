@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { useTheme } from '@/Composables/useTheme';
 import type { MonthlyForecast } from '@/Utils/Forecast';
 
 Chart.register(
@@ -42,6 +43,28 @@ const emit = defineEmits<{
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let chart: Chart<'bar'> | null = null;
+
+const { theme } = useTheme();
+
+const chartColors = computed(() =>
+    theme.value === 'light'
+        ? {
+              ticks: '#64748b',
+              grid: 'rgba(15, 23, 42, 0.08)',
+              tooltipBackground: 'rgba(255, 255, 255, 0.97)',
+              tooltipTitle: '#0f172a',
+              tooltipBody: '#334155',
+              tooltipBorder: 'rgba(15, 23, 42, 0.12)',
+          }
+        : {
+              ticks: '#64748b',
+              grid: 'rgba(255, 255, 255, 0.06)',
+              tooltipBackground: 'rgba(15, 23, 42, 0.95)',
+              tooltipTitle: '#f1f5f9',
+              tooltipBody: '#cbd5e1',
+              tooltipBorder: 'rgba(255, 255, 255, 0.1)',
+          },
+);
 
 const hasData = computed(() =>
     props.forecast.some((month) => month.total > 0),
@@ -92,7 +115,7 @@ const buildConfig = (): ChartConfiguration<'bar'> => ({
         maintainAspectRatio: false,
         animation: { duration: 250 },
         devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-        color: '#94a3b8',
+        color: chartColors.value.ticks,
         interaction: { mode: 'index', intersect: false },
         onClick: (event: ChartEvent, elements: ActiveElement[]) => {
             if (!elements.length) return;
@@ -105,10 +128,10 @@ const buildConfig = (): ChartConfiguration<'bar'> => ({
         plugins: {
             legend: { display: false },
             tooltip: {
-                backgroundColor: 'rgba(15,23,42,0.95)',
-                titleColor: '#f1f5f9',
-                bodyColor: '#cbd5e1',
-                borderColor: 'rgba(255,255,255,0.1)',
+                backgroundColor: chartColors.value.tooltipBackground,
+                titleColor: chartColors.value.tooltipTitle,
+                bodyColor: chartColors.value.tooltipBody,
+                borderColor: chartColors.value.tooltipBorder,
                 borderWidth: 1,
                 padding: 12,
                 cornerRadius: 10,
@@ -140,17 +163,17 @@ const buildConfig = (): ChartConfiguration<'bar'> => ({
                 grid: { display: false },
                 border: { display: false },
                 ticks: {
-                    color: '#64748b',
+                    color: chartColors.value.ticks,
                     font: { size: 11, weight: 600 },
                 },
             },
             y: {
                 stacked: true,
                 beginAtZero: true,
-                grid: { color: 'rgba(255,255,255,0.06)' },
+                grid: { color: chartColors.value.grid },
                 border: { display: false },
                 ticks: {
-                    color: '#64748b',
+                    color: chartColors.value.ticks,
                     maxTicksLimit: 6,
                     callback: (value) => formatAxisValue(Number(value)),
                 },
@@ -158,6 +181,29 @@ const buildConfig = (): ChartConfiguration<'bar'> => ({
         },
     },
 });
+
+const updateChartTheme = () => {
+    if (!chart) return;
+
+    const colors = chartColors.value;
+
+    chart.options.color = colors.ticks;
+
+    const tooltip = chart.options.plugins?.tooltip;
+    if (tooltip) {
+        tooltip.backgroundColor = colors.tooltipBackground;
+        tooltip.titleColor = colors.tooltipTitle;
+        tooltip.bodyColor = colors.tooltipBody;
+        tooltip.borderColor = colors.tooltipBorder;
+    }
+
+    const scales = chart.options.scales;
+    if (scales?.x?.ticks) scales.x.ticks.color = colors.ticks;
+    if (scales?.y?.ticks) scales.y.ticks.color = colors.ticks;
+    if (scales?.y?.grid) scales.y.grid.color = colors.grid;
+
+    chart.update();
+};
 
 const updateChart = () => {
     if (!chart) return;
@@ -186,6 +232,8 @@ watch(
     { deep: true },
 );
 
+watch(theme, () => updateChartTheme());
+
 onBeforeUnmount(() => {
     chart?.destroy();
     chart = null;
@@ -196,15 +244,15 @@ onBeforeUnmount(() => {
     <div>
         <div class="mb-4 flex items-center gap-4">
             <span
-                class="inline-flex items-center gap-2 text-xs font-medium text-slate-300"
+                class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300"
             >
-                <span class="h-2.5 w-2.5 rounded-sm bg-teal-400"></span>
+                <span class="h-2.5 w-2.5 rounded-sm bg-teal-600 dark:bg-teal-400"></span>
                 Recurring
             </span>
             <span
-                class="inline-flex items-center gap-2 text-xs font-medium text-slate-300"
+                class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300"
             >
-                <span class="h-2.5 w-2.5 rounded-sm bg-sky-400"></span>
+                <span class="h-2.5 w-2.5 rounded-sm bg-sky-600 dark:bg-sky-400"></span>
                 One-time
             </span>
         </div>
@@ -214,7 +262,7 @@ onBeforeUnmount(() => {
 
             <div
                 v-if="!hasData"
-                class="pointer-events-none absolute inset-0 grid place-items-center text-sm text-slate-400"
+                class="pointer-events-none absolute inset-0 grid place-items-center text-sm text-slate-600 dark:text-slate-400"
             >
                 No upcoming payments in the forecast window.
             </div>

@@ -158,7 +158,7 @@ defineExpose({
         <div
             v-if="isOpen"
             ref="tooltipRef"
-            class="fixed z-50 rounded-2xl border border-cyan-400/30 bg-slate-950/95 p-3 shadow-2xl shadow-slate-950/50 backdrop-blur-xl"
+            class="fixed z-50 rounded-2xl border border-cyan-700/30 bg-slate-100/95 p-3 shadow-2xl shadow-slate-500/50 backdrop-blur-xl dark:border-cyan-400/30 dark:bg-slate-950/95 dark:shadow-black/50"
             :class="width"
             :style="positionStyle"
             @pointerdown.stop

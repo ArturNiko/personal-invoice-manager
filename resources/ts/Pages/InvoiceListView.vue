@@ -3,12 +3,14 @@ import axios from 'axios';
 import { computed, ref, watch } from 'vue';
 import { getCurrencySymbol } from '@/Utils/Currency';
 import { useRoute, useRouter } from 'vue-router';
+import { buildInvoiceQuery, useInvoices } from '@/Composables/useInvoices';
+import { t } from '@/i18n';
 
 import { InvoiceTypes, type InvoiceEvent } from '@/Types/Invoice';
 import Badge from '@/Components/Badge.vue';
 import Button from '@/Components/Button.vue';
 import ConfirmationDialog from '@/Components/ConfirmationDialog.vue';
-import { buildInvoiceQuery, useInvoices } from '@/Composables/useInvoices';
+
 
 const route = useRoute();
 const router = useRouter();
@@ -60,10 +62,10 @@ const invoiceQuery = computed(() => buildInvoiceQuery(route.query));
 const visibleInvoices = computed(() => invoices.value);
 const pendingDeleteMessage = computed(() => {
     if (!pendingDeleteInvoice.value) {
-        return 'This action cannot be undone.';
+        return t('invoices.deleteWarning');
     }
 
-    return `Do you really want to delete "${pendingDeleteInvoice.value.title}"? This invoice will be permanently removed and cannot be recovered.`;
+    return `${t('invoices.deleteConfirmation')} "${pendingDeleteInvoice.value.title}"? ${t('invoices.deleteConfirmationTail')}`;
 });
 
 const filteredRecurringCount = computed(() => {
@@ -84,11 +86,11 @@ const toggleSortDirection = () => {
 };
 
 const getTypeCountLabel = (count: number) => {
-    return count === 1 ? 'item' : 'items';
+    return count === 1 ? t('invoices.item') : t('invoices.items');
 };
 
 const formatDate = (dateValue?: string) => {
-    if (!dateValue) return 'No due date';
+    if (!dateValue) return t('invoices.noDueDate');
 
     const parsedDate = new Date(dateValue);
 
@@ -113,7 +115,9 @@ const getTypeVariant = (type: string) => {
 };
 
 const getTypeLabel = (type: string) => {
-    return type === InvoiceTypes.RECURRING ? 'Recurring' : 'One-time';
+    return type === InvoiceTypes.RECURRING
+        ? t('invoices.recurringShort')
+        : t('invoices.oneTimeShort');
 };
 
 const getStatusVariant = (status: string) => {
@@ -188,23 +192,23 @@ watch(
 
 <template>
     <section
-        class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
+        class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-900/5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40"
     >
         <div
-            class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6"
+            class="flex items-center justify-between border-b border-slate-900/10 px-5 py-4 sm:px-6 dark:border-white/10"
         >
             <div>
-                <h2 class="text-lg font-semibold text-white">Invoice list</h2>
-                <p class="text-sm text-slate-400">
-                    Event-backed invoice entries synced from your API feed.
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('invoices.listTitle') }}</h2>
+                <p class="text-sm text-slate-600 dark:text-slate-400">
+                    {{ t('invoices.listSubtitle') }}
                 </p>
             </div>
             <Badge variant="sky" size="md"
-                >{{ visibleInvoices.length }} invoices</Badge
+                >{{ visibleInvoices.length }} {{ t('invoices.items') }}</Badge
             >
         </div>
 
-        <div class="border-b border-white/10 p-4 sm:p-6">
+        <div class="border-b border-slate-900/10 p-4 sm:p-6 dark:border-white/10">
             <div
                 class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
             >
@@ -213,8 +217,8 @@ watch(
                     <input
                         v-model="searchQuery"
                         type="search"
-                        placeholder="Search invoices..."
-                        class="w-full rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/50 focus:bg-slate-950/70"
+                        :placeholder="t('invoices.searchPlaceholder')"
+                        class="w-full rounded-2xl border border-slate-900/10 bg-slate-100/50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-cyan-700/50 focus:bg-slate-100/70 dark:border-white/10 dark:bg-slate-950/50 dark:text-white dark:focus:border-cyan-400/50 dark:focus:bg-slate-950/70"
                     />
                 </label>
 
@@ -225,7 +229,7 @@ watch(
                         class="whitespace-nowrap"
                         @click="typeFilter = 'all'"
                     >
-                        All
+                        {{ t('invoices.all') }}
                     </Button>
                     <Button
                         :variant="
@@ -237,7 +241,7 @@ watch(
                         class="whitespace-nowrap"
                         @click="typeFilter = InvoiceTypes.ONE_TIME"
                     >
-                        One-time
+                        {{ t('invoices.oneTime') }}
                     </Button>
                     <Button
                         :variant="
@@ -249,7 +253,7 @@ watch(
                         class="whitespace-nowrap"
                         @click="typeFilter = InvoiceTypes.RECURRING"
                     >
-                        Recurring
+                        {{ t('invoices.recurring') }}
                     </Button>
                     <Button
                         variant="outline"
@@ -259,8 +263,8 @@ watch(
                     >
                         {{
                             sortDirection === 'ascending'
-                                ? 'Soonest'
-                                : 'Latest'
+                                ? t('invoices.soonest')
+                                : t('invoices.latest')
                         }}
                     </Button>
                 </div>
@@ -276,22 +280,22 @@ watch(
                     <article
                         v-for="invoice in visibleInvoices"
                         :key="invoice.id"
-                        class="overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-950/40 p-3 shadow-[0_8px_18px_rgba(2,6,23,0.12)] transition hover:border-white/20 hover:bg-slate-950/55 sm:p-4"
+                        class="overflow-hidden rounded-[1.5rem] border border-slate-900/10 bg-slate-100/40 p-3 shadow-[0_8px_18px] shadow-slate-500/12 transition hover:border-slate-900/20 hover:bg-slate-100/55 dark:border-white/10 dark:bg-slate-950/40 dark:shadow-black/12 dark:hover:border-white/20 dark:hover:bg-slate-950/55 sm:p-4"
                     >
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-semibold text-white sm:text-base">
+                                <p class="truncate text-sm font-semibold text-slate-900 dark:text-white sm:text-base">
                                     {{ invoice.title }}
                                 </p>
-                                <div class="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400 sm:text-xs">
-                                    <span>Due {{ formatDate(invoice.start_date) }}</span>
-                                    <span class="text-slate-600">•</span>
-                                    <span>ID #{{ invoice.id }}</span>
+                                <div class="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400 sm:text-xs">
+                                    <span>{{ t('invoices.due') }} {{ formatDate(invoice.start_date) }}</span>
+                                    <span class="text-slate-400 dark:text-slate-600">•</span>
+                                    <span>{{ t('invoices.id') }} #{{ invoice.id }}</span>
                                 </div>
                             </div>
 
                             <div class="text-right">
-                                <p class="text-base font-semibold text-white sm:text-lg">
+                                <p class="text-base font-semibold text-slate-900 dark:text-white sm:text-lg">
                                     {{ formatAmount(invoice) }}
                                 </p>
                             </div>
@@ -310,17 +314,17 @@ watch(
                             <div class="ml-auto flex items-center gap-2">
                                 <button
                                     type="button"
-                                    class="rounded-xl border border-slate-600 bg-slate-800/80 px-2.5 py-1.5 text-[11px] font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-700 sm:px-3 sm:text-xs"
+                                    class="rounded-xl border border-slate-400 bg-slate-200/80 px-2.5 py-1.5 text-[11px] font-medium text-slate-900 transition hover:border-slate-500 hover:bg-slate-300 dark:border-slate-600 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700 sm:px-3 sm:text-xs"
                                     @click="editInvoice(invoice.id)"
                                 >
-                                    Edit
+                                    {{ t('invoices.edit') }}
                                 </button>
                                 <button
                                     type="button"
-                                    class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-2.5 py-1.5 text-[11px] font-medium text-rose-100 transition hover:bg-rose-500/20 sm:px-3 sm:text-xs"
+                                    class="rounded-xl border border-rose-700/40 bg-rose-700/10 px-2.5 py-1.5 text-[11px] font-medium text-rose-800 transition hover:bg-rose-700/20 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-100 dark:hover:bg-rose-500/20 sm:px-3 sm:text-xs"
                                     @click="promptDeleteInvoice(invoice)"
                                 >
-                                    Delete
+                                    {{ t('invoices.delete') }}
                                 </button>
                             </div>
                         </div>
@@ -328,36 +332,35 @@ watch(
                 </div>
 
                 <aside
-                    class="hidden rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-5 lg:block"
+                    class="hidden rounded-2xl border border-dashed border-slate-900/10 bg-slate-100/30 p-5 dark:border-white/10 dark:bg-slate-950/30 lg:block"
                 >
                     <p
-                        class="text-xs uppercase tracking-[0.25em] text-slate-400"
+                        class="text-xs uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400"
                     >
-                        Summary
+                        {{ t('invoices.summary') }}
                     </p>
-                    <h3 class="mt-2 text-xl font-semibold text-white">
-                        Invoice insights
+                    <h3 class="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
+                        {{ t('invoices.insights') }}
                     </h3>
-                    <p class="mt-2 text-sm leading-6 text-slate-400">
-                        This panel reflects the active backend search, filter,
-                        and sorting state.
+                    <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                        {{ t('invoices.insightsDescription') }}
                     </p>
-                    <div class="mt-6 space-y-3 text-sm text-slate-300">
+                    <div class="mt-6 space-y-3 text-sm text-slate-700 dark:text-slate-300">
                         <div
-                            class="rounded-xl border border-white/10 bg-white/5 p-3"
+                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                         >
-                            Visible invoices: {{ visibleInvoices.length }}
+                            {{ t('invoices.visibleInvoices') }}: {{ visibleInvoices.length }}
                         </div>
                         <div
-                            class="rounded-xl border border-white/10 bg-white/5 p-3"
+                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                         >
-                            Recurring: {{ filteredRecurringCount }}
+                            {{ t('invoices.recurringShort') }}: {{ filteredRecurringCount }}
                             {{ getTypeCountLabel(filteredRecurringCount) }}
                         </div>
                         <div
-                            class="rounded-xl border border-white/10 bg-white/5 p-3"
+                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
                         >
-                            One-time: {{ filteredOneTimeCount }}
+                            {{ t('invoices.oneTimeShort') }}: {{ filteredOneTimeCount }}
                             {{ getTypeCountLabel(filteredOneTimeCount) }}
                         </div>
                     </div>
@@ -366,20 +369,19 @@ watch(
 
             <div
                 v-else
-                class="flex h-full min-h-[20rem] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-slate-950/20 p-6 text-center"
+                class="flex h-full min-h-[20rem] items-center justify-center rounded-2xl border border-dashed border-slate-900/10 bg-slate-100/20 p-6 text-center dark:border-white/10 dark:bg-slate-950/20"
             >
                 <div>
                     <p
-                        class="text-sm uppercase tracking-[0.25em] text-slate-400"
+                        class="text-sm uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400"
                     >
-                        No data yet
+                        {{ t('invoices.noData') }}
                     </p>
-                    <h3 class="mt-2 text-xl font-semibold text-white">
-                        No invoices match your filters
+                    <h3 class="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
+                        {{ t('invoices.noResultsTitle') }}
                     </h3>
-                    <p class="mt-2 text-sm text-slate-400">
-                        Try clearing the search, switching the type filter, or
-                        changing the sort order.
+                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                        {{ t('invoices.noResultsDescription') }}
                     </p>
                 </div>
             </div>
@@ -387,10 +389,10 @@ watch(
             <ConfirmationDialog
                 :open="pendingDeleteInvoice !== null"
                 :busy="deletingInvoiceId === pendingDeleteInvoice?.id"
-                title="Delete invoice?"
+                :title="t('invoices.deleteInvoice')"
                 :message="pendingDeleteMessage"
-                confirm-label="Delete"
-                cancel-label="Keep it"
+                :confirm-label="t('invoices.delete')"
+                :cancel-label="t('invoices.keepIt')"
                 @close="closeDeleteDialog"
                 @confirm="confirmDeleteInvoice"
             />

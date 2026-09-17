@@ -10,6 +10,7 @@ import ForecastChart from '@/Widgets/ForecastChart.vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import deLocale from '@fullcalendar/core/locales/de';
 import {
     buildMonthlyForecast,
     buildUpcomingItems,
@@ -31,6 +32,7 @@ import {
 } from '@/Types/Invoice';
 import { useInvoices } from '@/Composables/useInvoices';
 import { useAppSettings } from '@/Composables/useAppSettings';
+import { locale, t } from '@/i18n';
 
 type CalendarDateClickArg = {
     dateStr: string;
@@ -93,22 +95,27 @@ const goToMonth = (key: string) => {
 const formatUpcomingDate = (dateKey: string) => {
     const [year, month, day] = dateKey.split('-').map(Number);
 
-    return new Intl.DateTimeFormat('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-    }).format(new Date(year, month - 1, day));
+    return new Intl.DateTimeFormat(
+        locale.value === 'de' ? 'de-DE' : 'en-US',
+        {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+        },
+    ).format(new Date(year, month - 1, day));
 };
 
 const formatUpcomingAmount = (item: UpcomingItem) => {
     return `${getCurrencySymbol(item.currency)}${item.amount.toLocaleString(
-        'en-US',
+        locale.value === 'de' ? 'de-DE' : 'en-US',
         { maximumFractionDigits: 2 },
     )}`;
 };
 
 const getUpcomingTypeLabel = (type: InvoiceTypes) => {
-    return type === InvoiceTypes.RECURRING ? 'Recurring' : 'One-time';
+    return type === InvoiceTypes.RECURRING
+        ? t('invoices.recurring')
+        : t('invoices.oneTime');
 };
 
 const getUpcomingTypeVariant = (type: InvoiceTypes) => {
@@ -302,6 +309,8 @@ const handleEventClick = (clickEvent: EventClickArg) => {
 
 const calendarOptions = computed<CalendarOptions>(() => ({
     plugins: [dayGridPlugin, interactionPlugin],
+    locales: [deLocale],
+    locale: locale.value,
     initialView: calendarView.value,
     height: 'auto',
     contentHeight: 'auto',
@@ -318,7 +327,7 @@ const calendarOptions = computed<CalendarOptions>(() => ({
         right: '',
     },
     buttonText: {
-        today: 'Today',
+        today: t('dashboard.today'),
     },
 
     events: invoices.value.flatMap((invoice) => buildInvoiceEvents(invoice)),
@@ -362,39 +371,45 @@ onUnmounted(() => {
     <div class="space-y-3 sm:space-y-5">
         <section class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3 sm:gap-4">
             <DashboardStatCard
-                label="Due this month"
+                :label="t('dashboard.dueThisMonth')"
                 :value="statsDisplay.dueThisMonth"
-                hint="Pending payments due in the current month."
+                :hint="t('dashboard.dueThisMonthHint')"
                 tone="sky"
             />
             <DashboardStatCard
-                label="Overdue"
+                :label="t('dashboard.overdue')"
                 :value="statsDisplay.overdue"
-                hint="Payments past their due date that need attention."
+                :hint="t('dashboard.overdueHint')"
                 tone="rose"
             />
             <DashboardStatCard
-                label="Recurring commitments"
+                :label="t('dashboard.recurringCommitments')"
                 :value="statsDisplay.recurring"
-                hint="Committed recurring outflow on autopilot."
+                :hint="t('dashboard.recurringCommitmentsHint')"
                 tone="teal"
             />
         </section>
 
         <section
-            class="calendar-shell relative flex h-full min-h-[30rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl sm:min-h-[38rem]"
+            class="calendar-shell relative flex h-full min-h-[30rem] flex-col overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-900/5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 sm:min-h-[38rem]"
         >
         <div
-            class="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6"
+            class="flex items-center justify-between border-b border-slate-900/10 px-5 py-4 sm:px-6 dark:border-white/10"
         >
             <div>
-                <h2 class="text-lg font-semibold text-white">Calendar</h2>
-                <p class="text-sm text-slate-400 mr-4">
-                    Monthly planning view with invoice-related reminders.
+                <h2
+                    class="text-lg font-semibold text-slate-900 dark:text-white"
+                >
+                    {{ t('dashboard.calendarTitle') }}
+                </h2>
+                <p
+                    class="mr-4 text-sm text-slate-600 dark:text-slate-400"
+                >
+                    {{ t('dashboard.calendarSubtitle') }}
                 </p>
             </div>
             <Badge variant="sky" size="md"
-                >{{ invoices.length }} invoices</Badge
+                >{{ invoices.length }} {{ t('dashboard.invoices') }}</Badge
             >
         </div>
 
@@ -411,45 +426,43 @@ onUnmounted(() => {
         </div>
         <Tooltip ref="tooltip" width="w-72" @close="closeTooltip">
             <div class="space-y-2">
-                <p class="text-xs uppercase tracking-[0.24em] text-slate-400">
-                    Selected day
+                <p class="text-xs uppercase tracking-[0.24em] text-slate-600 dark:text-slate-400">
+                    {{ t('dashboard.selectedDay') }}
                 </p>
-                <p class="text-xs text-slate-400">{{ tooltipDate }}</p>
+                <p class="text-xs text-slate-600 dark:text-slate-400">{{ tooltipDate }}</p>
 
                 <button
                     type="button"
-                    class="mt-2 w-full rounded-xl bg-cyan-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+                    class="mt-2 w-full rounded-xl bg-cyan-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-800 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
                     @click.stop="createInvoiceForDay"
                 >
-                    Create invoice for this day
+                    {{ t('dashboard.createInvoiceForDay') }}
                 </button>
 
-                <p class="text-xs leading-5 text-slate-400">
-                    More day actions might be available in future updates.
+                <p class="text-xs leading-5 text-slate-600 dark:text-slate-400">
+                    {{ t('dashboard.moreDayActions') }}
                 </p>
             </div>
         </Tooltip>
         </section>
 
         <section
-            class="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl sm:p-6"
+            class="dashboard-panel rounded-[2rem] border border-slate-900/10 bg-slate-900/5 p-5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40 sm:p-6"
         >
             <div
-                class="flex flex-col gap-3 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between sm:pb-5"
+                class="flex flex-col gap-3 border-b border-slate-900/10 pb-4 sm:flex-row sm:items-center sm:justify-between sm:pb-5 dark:border-white/10"
             >
                 <div>
                     <p
-                        class="text-xs uppercase tracking-[0.28em] text-cyan-300/70"
+                        class="text-xs uppercase tracking-[0.28em] text-cyan-700/70 dark:text-cyan-300/70"
                     >
-                        Forecast
+                        {{ t('dashboard.forecast') }}
                     </p>
-                    <h2 class="mt-1 text-lg font-semibold text-white">
-                        Upcoming payments
+                    <h2 class="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+                        {{ t('dashboard.upcomingPayments') }}
                     </h2>
-                    <p class="mt-1 text-sm text-slate-400">
-                        Monthly outflow split into committed recurring and
-                        flexible one-time payments. Click a bar to jump the
-                        calendar to that month.
+                    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                        {{ t('dashboard.upcomingPaymentsDescription') }}
                     </p>
                 </div>
 
@@ -459,24 +472,24 @@ onUnmounted(() => {
                         class="rounded-xl border px-3 py-2 text-sm font-semibold transition"
                         :class="
                             forecastRange === 6
-                                ? 'border-white/10 bg-white text-slate-950'
-                                : 'border-white/10 bg-slate-900/80 text-slate-300 hover:bg-slate-800/80'
+                                ? 'border-slate-900/10 bg-slate-900 text-white dark:border-white/10 dark:bg-white dark:text-slate-950'
+                                : 'border-slate-900/10 bg-white/80 text-slate-600 hover:bg-slate-200/80 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-800/80'
                         "
                         @click="setForecastRange(6)"
                     >
-                        6 months
+                        {{ t('dashboard.months6') }}
                     </button>
                     <button
                         type="button"
                         class="rounded-xl border px-3 py-2 text-sm font-semibold transition"
                         :class="
                             forecastRange === 12
-                                ? 'border-white/10 bg-white text-slate-950'
-                                : 'border-white/10 bg-slate-900/80 text-slate-300 hover:bg-slate-800/80'
+                                ? 'border-slate-900/10 bg-slate-900 text-white dark:border-white/10 dark:bg-white dark:text-slate-950'
+                                : 'border-slate-900/10 bg-white/80 text-slate-600 hover:bg-slate-200/80 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-800/80'
                         "
                         @click="setForecastRange(12)"
                     >
-                        12 months
+                        {{ t('dashboard.months12') }}
                     </button>
                 </div>
             </div>
@@ -491,25 +504,25 @@ onUnmounted(() => {
         </section>
 
         <section
-            class="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl sm:p-6"
+            class="dashboard-panel rounded-[2rem] border border-slate-900/10 bg-slate-900/5 p-5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40 sm:p-6"
         >
-            <div class="border-b border-white/10 pb-4 sm:pb-5">
+            <div class="border-b border-slate-900/10 pb-4 sm:pb-5 dark:border-white/10">
                 <p
-                    class="text-xs uppercase tracking-[0.28em] text-cyan-300/70"
+                    class="text-xs uppercase tracking-[0.28em] text-cyan-700/70 dark:text-cyan-300/70"
                 >
-                    Upcoming
+                    {{ t('dashboard.upcoming') }}
                 </p>
-                <h2 class="mt-1 text-lg font-semibold text-white">
-                    Recent & upcoming invoices
+                <h2 class="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+                    {{ t('dashboard.recentUpcoming') }}
                 </h2>
-                <p class="mt-1 text-sm text-slate-400">
-                    Next expected payment dates for active invoices.
+                <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                    {{ t('dashboard.recentUpcomingDescription') }}
                 </p>
             </div>
 
             <div
                 v-if="upcomingItems.length"
-                class="divide-y divide-white/5"
+                class="divide-y divide-slate-900/5 dark:divide-white/5"
             >
                 <div
                     v-for="item in upcomingItems"
@@ -517,10 +530,10 @@ onUnmounted(() => {
                     class="flex items-center justify-between gap-4 py-3 sm:py-4"
                 >
                     <div class="min-w-0">
-                        <p class="truncate text-sm font-semibold text-white">
+                        <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">
                             {{ item.title }}
                         </p>
-                        <p class="mt-0.5 text-xs text-slate-400">
+                        <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
                             {{ formatUpcomingDate(item.dateKey) }}
                         </p>
                     </div>
@@ -529,7 +542,7 @@ onUnmounted(() => {
                             {{ getUpcomingTypeLabel(item.type) }}
                         </Badge>
                         <p
-                            class="whitespace-nowrap text-sm font-semibold text-white"
+                            class="whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white"
                         >
                             {{ formatUpcomingAmount(item) }}
                         </p>
@@ -539,16 +552,16 @@ onUnmounted(() => {
 
             <div
                 v-else
-                class="flex min-h-[8rem] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-slate-950/20 p-6 text-center"
+                class="flex min-h-[8rem] items-center justify-center rounded-2xl border border-dashed border-slate-900/10 bg-slate-100/20 p-6 text-center dark:border-white/10 dark:bg-slate-950/20"
             >
                 <div>
                     <p
-                        class="text-xs uppercase tracking-[0.25em] text-slate-400"
+                        class="text-xs uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400"
                     >
-                        No data yet
+                        {{ t('dashboard.noData') }}
                     </p>
-                    <p class="mt-2 text-sm text-slate-400">
-                        Add an invoice and upcoming payments will show up here.
+                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                        {{ t('dashboard.noDataHint') }}
                     </p>
                 </div>
             </div>
@@ -563,6 +576,11 @@ onUnmounted(() => {
     color: rgb(226 232 240);
 }
 
+/* Keep the dark-mode panel shadow but soften it for light surfaces */
+html.light .dashboard-panel {
+    box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.22);
+}
+
 .invoice-calendar--compact.fc {
     min-width: 44rem;
 }
@@ -574,7 +592,7 @@ onUnmounted(() => {
 
 /* Month title in the toolbar */
 .invoice-calendar.fc .fc-toolbar-title {
-    color: white;
+    color: rgb(248 250 252);
     font-size: 1.3rem;
     font-weight: 700;
 }
@@ -582,13 +600,28 @@ onUnmounted(() => {
 /* Navigation buttons in the toolbar */
 .invoice-calendar.fc .fc-button-primary {
     background-color: rgba(15, 23, 42, 0.9);
-    border-color: rgba(148, 163, 184, 0.2);
+    border-color: transparent;
+    appearance: none;
+    box-shadow: none;
+    outline: none;
+}
+
+.invoice-calendar.fc .fc-button-primary:focus,
+.invoice-calendar.fc .fc-button-primary:focus-visible {
+    box-shadow: none;
+    outline: none;
+}
+
+.invoice-calendar.fc .fc-button-primary:active,
+.invoice-calendar.fc .fc-button-primary:focus:not(:focus-visible) {
+    box-shadow: none;
+    outline: none;
 }
 
 .invoice-calendar.fc .fc-button-primary:not(:disabled).fc-button-active,
 .invoice-calendar.fc .fc-button-primary:hover {
     background-color: rgb(14 165 233);
-    border-color: rgb(14 165 233);
+    border-color: transparent;
 }
 
 /* Grid borders for the header row and day cells */
@@ -653,9 +686,9 @@ onUnmounted(() => {
 /* Base event pill shell and spacing */
 .invoice-calendar.fc .fc-daygrid-event.invoice-event {
     margin: 0.25rem 0.3rem 0;
-    border: 1px solid rgba(148, 163, 184, 0.18);
+    border: 1px solid rgba(148, 163, 184, 0.16);
     border-radius: 0.8rem;
-    box-shadow: 0 5px 12px rgba(2, 6, 23, 0.28);
+    box-shadow: 0 5px 12px rgba(15, 23, 42, 0.12);
     overflow: hidden;
     position: relative;
     background-clip: padding-box;
@@ -676,24 +709,24 @@ onUnmounted(() => {
 .invoice-calendar.fc .fc-daygrid-event.invoice-event {
     background: linear-gradient(
         135deg,
-        rgba(88, 28, 135, 0.9),
-        rgba(109, 40, 217, 0.82)
+        rgba(129, 140, 248, 0.65),
+        rgba(96, 165, 250, 0.58)
     );
 }
 
 .invoice-calendar.fc .fc-daygrid-event.invoice-event--one-time {
     background: linear-gradient(
         135deg,
-        rgba(30, 64, 175, 0.9),
-        rgba(37, 99, 235, 0.82)
+        rgba(96, 165, 250, 0.62),
+        rgba(125, 211, 252, 0.52)
     );
 }
 
 .invoice-calendar.fc .fc-daygrid-event.invoice-event--recurring {
     background: linear-gradient(
         135deg,
-        rgba(15, 118, 110, 0.92),
-        rgba(20, 184, 166, 0.75)
+        rgba(45, 212, 191, 0.64),
+        rgba(20, 184, 166, 0.52)
     );
 }
 
@@ -798,5 +831,93 @@ onUnmounted(() => {
 .invoice-calendar.fc .fc-daygrid-event.invoice-event:hover {
     filter: brightness(1.08) saturate(1.02);
     transform: translateY(-1px);
+}
+
+/* ---------------------------------------------------------------- */
+/* Light theme adjustments for the calendar (dark-first by default). */
+/* ---------------------------------------------------------------- */
+
+html.light .invoice-calendar.fc {
+    color: rgb(30 41 59);
+}
+
+html.light .invoice-calendar.fc .fc-toolbar-title {
+    color: rgb(30 41 59);
+}
+
+html.light .invoice-calendar.fc .fc-button-primary {
+    background-color: #ffffff;
+    border-color: transparent;
+    appearance: none;
+    color: rgb(51 65 85);
+    box-shadow: none;
+    outline: none;
+}
+
+html.light .invoice-calendar.fc .fc-button-primary:focus,
+html.light .invoice-calendar.fc .fc-button-primary:focus-visible {
+    box-shadow: none;
+    outline: none;
+}
+
+html.light .invoice-calendar.fc .fc-button-primary:active,
+html.light .invoice-calendar.fc .fc-button-primary:focus:not(:focus-visible) {
+    box-shadow: none;
+    outline: none;
+}
+
+html.light .invoice-calendar.fc .fc-button-primary:not(:disabled).fc-button-active,
+html.light .invoice-calendar.fc .fc-button-primary:hover {
+    background-color: rgb(14 165 233);
+    border-color: transparent;
+    color: #ffffff;
+}
+
+html.light .invoice-calendar.fc .fc-theme-standard td,
+html.light .invoice-calendar.fc .fc-theme-standard th,
+html.light .invoice-calendar.fc .fc-theme-standard .fc-scrollgrid {
+    border-color: rgba(203, 213, 225, 0.95);
+}
+
+html.light .invoice-calendar.fc .fc-theme-standard .fc-scrollgrid {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+html.light .invoice-calendar.fc .fc-col-header,
+html.light .invoice-calendar.fc .fc-col-header-cell {
+    background: rgba(248, 250, 252, 0.95);
+}
+
+html.light .invoice-calendar.fc .fc-col-header-cell-cushion {
+    color: rgb(100 116 139);
+}
+
+html.light .invoice-calendar.fc .fc-daygrid-day-number {
+    color: rgb(30 41 59);
+}
+
+html.light .invoice-calendar.fc .fc-daygrid-day.fc-day-other .fc-daygrid-day-number {
+    color: rgb(148 163 184);
+}
+
+html.light .invoice-calendar.fc .fc-daygrid-day.fc-day-today {
+    background: rgb(224 242 254 / 0.85);
+    box-shadow: inset 0 0 0 1px rgb(56 189 248 / 0.45);
+}
+
+html.light .invoice-calendar.fc .fc-daygrid-event.invoice-event {
+    border-color: rgba(100, 116, 139, 0.25);
+    box-shadow: 0 5px 12px rgba(15, 23, 42, 0.12);
+}
+
+/* Event pills keep their saturated gradients in both themes, so their
+   text must stay light regardless of the surrounding theme. */
+html.light .invoice-calendar.fc .fc-daygrid-event.invoice-event,
+html.light .invoice-calendar.fc .invoice-event-title {
+    color: rgb(248 250 252);
+}
+
+html.light .invoice-calendar.fc .invoice-event-meta {
+    color: rgba(248, 250, 252, 0.78);
 }
 </style>

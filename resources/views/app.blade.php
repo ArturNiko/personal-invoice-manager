@@ -7,6 +7,20 @@
     <meta name="description" content="A short description of your page.">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <script>
+        (function () {
+            try {
+                var stored = localStorage.getItem('pim-theme');
+                var theme =
+                    stored === 'light' || stored === 'dark' ? stored : 'dark';
+                var root = document.documentElement;
+                root.classList.add(theme);
+                root.style.colorScheme = theme;
+            } catch (error) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     @vite(['resources/css/app.css', 'resources/ts/app.ts'])
 </head>
 <body

@@ -11,7 +11,7 @@ const props = withDefaults(
     },
 );
 
-const iconUrl = `/icons/${props.icon}.svg`;
+const iconUrl = computed(() => `/icons/${props.icon}.svg`);
 
 const systemTheme = ref<'light' | 'dark'>('light');
 const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -52,23 +52,23 @@ onUnmounted(() => {
     width: 24px;
     height: 24px;
     vertical-align: middle;
-    color: #0f172a;
+    color: var(--icon-color-dark);
     background-color: currentColor;
     -webkit-mask: var(--icon-url) no-repeat center / contain;
     mask: var(--icon-url) no-repeat center / contain;
 }
 
 .icon--light {
-    color: #0f172a;
+    color: var(--icon-color-light);
 }
 
 .icon--dark {
-    color: #ffffff;
+    color: var(--icon-color-dark);
 }
 
 @media (prefers-color-scheme: dark) {
     .icon--auto {
-        color: #ffffff;
+        color: var(--icon-color-dark);
     }
 }
 </style>

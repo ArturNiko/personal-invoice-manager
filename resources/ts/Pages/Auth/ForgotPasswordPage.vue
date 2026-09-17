@@ -2,6 +2,10 @@
 import axios from 'axios';
 import { ref } from 'vue';
 import { RouterLink } from 'vue-router';
+import { t } from '@/i18n';
+
+import InputText from '@/Components/Form/InputText.vue';
+
 
 const csrfToken =
     document.head
@@ -33,8 +37,7 @@ async function submit() {
             },
         );
 
-        status.value =
-            'If that account exists, a password reset link has been sent.';
+        status.value = t('auth.resetLinkSent');
     } catch (error) {
         if (axios.isAxiosError(error)) {
             if (error.response?.status === 422) {
@@ -43,15 +46,14 @@ async function submit() {
                 if (!Object.keys(errors.value).length) {
                     generalError.value =
                         error.response.data.message ??
-                        'The email address is invalid.';
+                        t('auth.somethingWentWrong');
                 }
 
                 return;
             }
         }
 
-        generalError.value =
-            'We could not send the reset link. Please try again.';
+        generalError.value = t('auth.resetLinkFailed');
     } finally {
         loading.value = false;
     }
@@ -60,57 +62,46 @@ async function submit() {
 
 <template>
     <div
-        class="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10 text-slate-100"
+        class="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10 text-slate-900 dark:bg-slate-950 dark:text-slate-100"
     >
         <div
-            class="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-slate-950/50 backdrop-blur-xl sm:p-8"
+            class="w-full max-w-md rounded-3xl border border-slate-900/10 bg-slate-900/5 p-6 shadow-2xl shadow-slate-500/50 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/50 sm:p-8"
         >
             <div class="mb-8 text-center">
                 <p
-                    class="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-300/80"
+                    class="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700/80 dark:text-cyan-300/80"
                 >
-                    Password reset
+                    {{ t('auth.passwordReset') }}
                 </p>
-                <h1 class="mt-3 text-3xl font-semibold text-white">
-                    Forgot password
+                <h1 class="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">
+                    {{ t('auth.forgotPasswordTitle') }}
                 </h1>
             </div>
 
             <div
                 v-if="generalError"
-                class="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+                class="mb-5 rounded-xl border border-red-600/30 bg-red-600/10 px-4 py-3 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300"
             >
                 {{ generalError }}
             </div>
 
             <div
                 v-if="status"
-                class="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
+                class="mb-5 rounded-xl border border-emerald-600/30 bg-emerald-600/10 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
             >
                 {{ status }}
             </div>
 
             <form @submit.prevent="submit" class="space-y-5">
                 <div>
-                    <label
-                        for="email"
-                        class="mb-2 block text-sm font-medium text-slate-200"
-                        >Email</label
-                    >
-                    <input
-                        id="email"
+                    <InputText
                         v-model="email"
+                        :label="t('auth.email')"
                         type="email"
+                        :error="!!errors.email"
                         required
-                        autocomplete="email"
-                        class="w-full rounded-xl border bg-slate-900/80 px-3 py-2.5 text-slate-100 outline-none transition focus:ring-2"
-                        :class="
-                            errors.email
-                                ? 'border-red-500/60 focus:border-red-400 focus:ring-red-500/40'
-                                : 'border-white/10 focus:border-cyan-400 focus:ring-cyan-500/40'
-                        "
                     />
-                    <p v-if="errors.email" class="mt-1.5 text-xs text-red-400">
+                    <p v-if="errors.email" class="mt-1.5 text-xs text-red-600 dark:text-red-400">
                         {{ errors.email[0] }}
                     </p>
                 </div>
@@ -118,19 +109,19 @@ async function submit() {
                 <button
                     type="submit"
                     :disabled="loading"
-                    class="w-full rounded-xl bg-cyan-400 px-4 py-2.5 font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
+                    class="w-full rounded-xl bg-cyan-700 px-4 py-2.5 font-semibold text-white transition hover:bg-cyan-800 disabled:opacity-50 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
                 >
-                    {{ loading ? 'Sending...' : 'Send reset link' }}
+                    {{ loading ? t('auth.sendingResetLink') : t('auth.sendResetLink') }}
                 </button>
             </form>
 
-            <div class="mt-6 text-center text-sm text-slate-300">
-                Remember your password?
+            <div class="mt-6 text-center text-sm text-slate-700 dark:text-slate-300">
+                {{ t('auth.rememberPassword') }}
                 <RouterLink
                     to="/login"
-                    class="font-semibold text-cyan-300 hover:text-cyan-200"
+                    class="font-semibold text-cyan-700 hover:text-cyan-700 dark:text-cyan-300 dark:hover:text-cyan-200"
                 >
-                    Back to login
+                    {{ t('auth.backToLogin') }}
                 </RouterLink>
             </div>
         </div>
