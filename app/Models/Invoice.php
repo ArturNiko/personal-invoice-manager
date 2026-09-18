@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use App\Enums\AgentTaskState;
+use App\Enums\InvoiceOccurrenceStatus;
+use App\Enums\InvoiceReccuranceType;
+use App\Enums\InvoiceType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
@@ -35,9 +38,61 @@ class Invoice extends Model
         'status',
     ];
 
+    protected static function booted(): void
+    {
+        static::created(function (self $invoice): void {
+            $invoice->generateOccurrencesIfNeeded();
+        });
+
+        static::updated(function (self $invoice): void {
+            if ($invoice->type !== InvoiceType::RECURRING->value) {
+                return;
+            }
+
+            if ($invoice->wasChanged(['type', 'recurrence', 'start_date', 'price', 'currency']) && $invoice->occurrences()->doesntExist()) {
+                $invoice->generateOccurrencesIfNeeded();
+            }
+        });
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function occurrences()
+    {
+        return $this->hasMany(InvoiceOccurrence::class);
+    }
+
+    public function generateOccurrencesIfNeeded(): void
+    {
+        if ($this->type !== InvoiceType::RECURRING->value || $this->occurrences()->exists()) {
+            return;
+        }
+
+        $startDate = $this->start_date instanceof Carbon
+            ? $this->start_date->copy()
+            : Carbon::parse($this->start_date);
+
+        foreach (range(0, 5) as $index) {
+            $dueDate = match ($this->recurrence) {
+                InvoiceReccuranceType::WEEKLY->value => $startDate->copy()->addWeeks($index),
+                InvoiceReccuranceType::BIWEEKLY->value => $startDate->copy()->addWeeks($index * 2),
+                InvoiceReccuranceType::QUARTERLY->value => $startDate->copy()->addMonths($index * 3),
+                InvoiceReccuranceType::SEMIANNUAL->value => $startDate->copy()->addMonths($index * 6),
+                InvoiceReccuranceType::YEARLY->value => $startDate->copy()->addYears($index),
+                default => $startDate->copy()->addMonths($index),
+            };
+
+            $this->occurrences()->create([
+                'due_date' => $dueDate->toDateString(),
+                'amount' => (float) $this->price,
+                'currency' => $this->currency,
+                'status' => InvoiceOccurrenceStatus::PENDING->value,
+                'paid_at' => null,
+            ]);
+        }
     }
 
     protected $casts = [

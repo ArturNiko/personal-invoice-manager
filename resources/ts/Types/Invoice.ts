@@ -11,6 +11,17 @@ export interface InvoiceEvent {
     recurrence?: InvoiceRecurrence;
     start_date: string;
     end_date?: string;
+    occurrences?: InvoiceOccurrence[];
+}
+
+export interface InvoiceOccurrence {
+    id: number;
+    invoice_id: number;
+    due_date: string;
+    amount: number;
+    currency: Currency;
+    status: InvoiceStatuses;
+    paid_at?: string | null;
 }
 
 export interface InvoiceIndexResponse {

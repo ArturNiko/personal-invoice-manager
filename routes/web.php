@@ -20,6 +20,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/invoices', [InvoiceController::class, 'store']);
     Route::match(['put', 'patch'], '/invoices/{invoice}', [InvoiceController::class, 'update']);
     Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy']);
+    Route::get('/invoices/{invoice}/occurrences', [\App\Http\Controllers\InvoiceOccurrenceController::class, 'index']);
+    Route::put('/invoices/{invoice}/occurrences/{occurrence}', [\App\Http\Controllers\InvoiceOccurrenceController::class, 'update']);
     Route::post('/invoices/import', [InvoiceController::class, 'import']);
 
     Route::get('/profile', [ProfileController::class, 'show']);

@@ -19,6 +19,7 @@ import ConfirmationDialog from '@/Components/ConfirmationDialog.vue';
 import {
     type InvoiceEvent,
     type InvoiceForm,
+    type InvoiceOccurrence,
     InvoiceTypes,
     InvoiceStatuses,
     InvoiceRecurrence,
@@ -28,10 +29,12 @@ import { Currency } from '@/Types/Currency';
 const router = useRouter();
 const route = useRoute();
 const invoice = ref<InvoiceEvent | null>(null);
+const occurrences = ref<InvoiceOccurrence[]>([]);
 const loading = ref(true);
 const loadError = ref('');
 const isSubmitting = ref(false);
 const isDeleting = ref(false);
+const updatingOccurrenceId = ref<number | null>(null);
 const isDeleteDialogOpen = ref(false);
 const submitError = ref('');
 const submitSuccess = ref('');
@@ -83,6 +86,60 @@ const syncFormFromInvoice = (currentInvoice: InvoiceEvent) => {
     form.price = String(currentInvoice.price ?? '');
 };
 
+const getOccurrenceStatusSummary = (items: InvoiceOccurrence[]) => {
+    if (!items.length) {
+        return InvoiceStatuses.PENDING;
+    }
+
+    if (items.every((occurrence) => occurrence.status === InvoiceStatuses.PAID)) {
+        return InvoiceStatuses.PAID;
+    }
+
+    if (items.some((occurrence) => occurrence.status === InvoiceStatuses.OVERDUE)) {
+        return InvoiceStatuses.OVERDUE;
+    }
+
+    return InvoiceStatuses.PENDING;
+};
+
+const formatOccurrenceDate = (value?: string | null) => {
+    if (!value) {
+        return '—';
+    }
+
+    const trimmed = String(value).trim();
+    const parsedDate =
+        /^\d{4}-\d{2}-\d{2}$/.test(trimmed)
+            ? new Date(`${trimmed}T12:00:00`)
+            : new Date(trimmed);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return trimmed;
+    }
+
+    return parsedDate.toLocaleDateString(
+        locale.value === 'de' ? 'de-DE' : 'en-US',
+        { dateStyle: 'medium' },
+    );
+};
+
+const loadOccurrences = async () => {
+    const invoiceId = route.params.id;
+
+    if (typeof invoiceId !== 'string') {
+        return;
+    }
+
+    try {
+        const response = await axios.get<InvoiceOccurrence[]>(
+            `/invoices/${invoiceId}/occurrences`,
+        );
+        occurrences.value = response.data;
+    } catch (error: any) {
+        occurrences.value = [];
+    }
+};
+
 const loadInvoice = async () => {
     const invoiceId = route.params.id;
 
@@ -98,6 +155,11 @@ const loadInvoice = async () => {
         );
         invoice.value = response.data;
         syncFormFromInvoice(response.data);
+        await loadOccurrences();
+
+        if (response.data.type === InvoiceTypes.RECURRING) {
+            form.status = getOccurrenceStatusSummary(occurrences.value);
+        }
     } catch (error: any) {
         loadError.value =
             error?.response?.data?.message ?? t('invoices.failedToLoadInvoice');
@@ -137,6 +199,45 @@ const getStatusLabel = (status: InvoiceStatuses) => {
             return t('invoices.overdue');
         default:
             return t('invoices.pending');
+    }
+};
+
+const recurringOccurrenceStatusOptions = computed(() => [
+    { label: t('invoices.pending'), value: InvoiceStatuses.PENDING },
+    { label: t('invoices.paid'), value: InvoiceStatuses.PAID },
+    { label: t('invoices.overdue'), value: InvoiceStatuses.OVERDUE },
+]);
+
+const updateOccurrenceStatus = async (
+    occurrenceId: number,
+    nextStatus: InvoiceStatuses,
+) => {
+    const invoiceId = route.params.id;
+
+    if (typeof invoiceId !== 'string') {
+        return;
+    }
+
+    updatingOccurrenceId.value = occurrenceId;
+
+    try {
+        const response = await axios.put<InvoiceOccurrence>(
+            `/invoices/${invoiceId}/occurrences/${occurrenceId}`,
+            { status: nextStatus },
+        );
+
+        const index = occurrences.value.findIndex(
+            (occurrence) => occurrence.id === occurrenceId,
+        );
+
+        if (index >= 0) {
+            occurrences.value[index] = response.data;
+        }
+    } catch (error: any) {
+        submitError.value =
+            error?.response?.data?.message ?? t('invoices.failedToUpdateInvoice');
+    } finally {
+        updatingOccurrenceId.value = null;
     }
 };
 
@@ -192,13 +293,16 @@ const submitForm = async () => {
         Record<string, string | number | undefined> = {
         title: form.title,
         type: form.type,
-        status: form.status,
         start_date: form.start_date,
         currency: form.currency,
         recurrence: isRecurring.value ? form.recurrence : undefined,
         end_date: isRecurring.value ? form.end_date : undefined,
         price: Number(form.price),
     };
+
+    if (!isRecurring.value) {
+        payload.status = form.status;
+    }
 
     try {
         await axios.put(`/invoices/${invoice.value.id}`, payload);
@@ -299,11 +403,27 @@ onMounted(loadInvoice);
                                 :label="t('invoices.type')"
                                 :options="invoiceTypeOptions"
                             />
-                            <InputSelect
-                                v-model="form.status"
-                                :label="t('invoices.status')"
-                                :options="invoiceStatusOptions"
-                            />
+                            <div v-if="!isRecurring">
+                                <InputSelect
+                                    v-model="form.status"
+                                    :label="t('invoices.status')"
+                                    :options="invoiceStatusOptions"
+                                />
+                            </div>
+                            <div
+                                v-else
+                                class="rounded-xl border border-slate-900/10 bg-slate-100/50 p-3 dark:border-white/10 dark:bg-slate-900/40"
+                            >
+                                <p class="text-xs uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">
+                                    {{ t('invoices.status') }}
+                                </p>
+                                <p class="mt-2 text-sm font-medium text-slate-900 dark:text-white">
+                                    {{ getStatusLabel(getOccurrenceStatusSummary(occurrences)) }}
+                                </p>
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    {{ t('invoices.basedOnPaymentSchedule') }}
+                                </p>
+                            </div>
                         </div>
 
                         <div class="grid gap-4 sm:grid-cols-2">
@@ -332,6 +452,64 @@ onMounted(loadInvoice);
                             :options="invoiceRecurrenceOptions"
                             :disabled="!isRecurring"
                         />
+                    </div>
+
+                    <div
+                        v-if="isRecurring && invoice?.id"
+                        class="rounded-2xl border border-slate-900/10 bg-slate-100/30 p-4 dark:border-white/10 dark:bg-slate-950/30"
+                    >
+                        <div class="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400">
+                                    {{ t('invoices.paymentSchedule') }}
+                                </p>
+                                <h3 class="mt-2 text-base font-semibold text-slate-900 dark:text-white">
+                                    {{ t('invoices.recurring') }}
+                                </h3>
+                            </div>
+                        </div>
+
+                        <div v-if="occurrences.length" class="space-y-3">
+                            <div
+                                v-for="occurrence in occurrences"
+                                :key="occurrence.id"
+                                class="flex flex-col gap-3 rounded-xl border border-slate-900/10 bg-white/60 p-3 dark:border-white/10 dark:bg-slate-900/40 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                                <div>
+                                    <p class="font-medium text-slate-900 dark:text-white">
+                                        {{ formatOccurrenceDate(occurrence.due_date) }}
+                                    </p>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400">
+                                        {{ formatMoney(occurrence.amount, occurrence.currency) }}
+                                    </p>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <label class="sr-only" :for="`occurrence-status-${occurrence.id}`">
+                                        {{ t('invoices.status') }}
+                                    </label>
+                                    <select
+                                        :id="`occurrence-status-${occurrence.id}`"
+                                        class="rounded-xl border border-slate-900/10 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 dark:border-white/10 dark:bg-slate-800 dark:text-slate-100"
+                                        :value="occurrence.status"
+                                        :disabled="updatingOccurrenceId === occurrence.id"
+                                        @change="updateOccurrenceStatus(occurrence.id, ($event.target as HTMLSelectElement).value as InvoiceStatuses)"
+                                    >
+                                        <option
+                                            v-for="option in recurringOccurrenceStatusOptions"
+                                            :key="option.value"
+                                            :value="option.value"
+                                        >
+                                            {{ option.label }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p v-else class="text-sm text-slate-600 dark:text-slate-400">
+                            {{ t('invoices.noScheduledPayments') }}
+                        </p>
                     </div>
                 </div>
 

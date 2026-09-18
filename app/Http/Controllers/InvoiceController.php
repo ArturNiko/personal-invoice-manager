@@ -58,6 +58,8 @@ class InvoiceController extends Controller
 
     public function show(Request $request, Invoice $invoice): JsonResponse|Response
     {
+        $this->authorizeAccess($invoice);
+
         if (!$request->expectsJson()) {
             return response()->view('app');
         }
@@ -67,6 +69,8 @@ class InvoiceController extends Controller
 
     public function destroy(Invoice $invoice)
     {
+        $this->authorizeAccess($invoice);
+
         $invoice->delete();
 
         return response()->json(['message' => 'Invoice deleted successfully.']);
@@ -74,6 +78,8 @@ class InvoiceController extends Controller
 
     public function update(Invoice $invoice, InvoicesRequest $request)
     {
+        $this->authorizeAccess($invoice);
+
         $validated = $request->validated();
 
         $invoice->update($validated);
@@ -119,7 +125,8 @@ class InvoiceController extends Controller
             }
 
             throw new InvoiceNotProcessableException('Nanonets did not return a queued task envelope. Polling-based processing is required.');
-        } catch (InvoiceNotProcessableException $exception) {
+        } 
+        catch (InvoiceNotProcessableException $exception) {
             $agentTask->update([
                 'status' => AgentTaskState::FAILED->value,
                 'details' => ['error' => $exception->getMessage()],
@@ -131,7 +138,8 @@ class InvoiceController extends Controller
                 'task_id' => $agentTask->id,
                 'status' => $agentTask->status,
             ], 422);
-        } catch (\Throwable $throwable) {
+        } 
+        catch (\Throwable $throwable) {
             Log::error('Invoice import failed.', [
                 'agent_task_id' => $agentTask->id,
                 'message' => $throwable->getMessage(),
@@ -149,6 +157,11 @@ class InvoiceController extends Controller
                 'status' => $agentTask->status,
             ], 500);
         }
+    }
+
+    private function authorizeAccess(Invoice $invoice): void
+    {
+        abort_unless($invoice->user_id === auth()->id(), 403);
     }
 
 }
