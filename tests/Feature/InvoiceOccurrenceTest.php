@@ -15,7 +15,7 @@ class InvoiceOccurrenceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_recurring_invoice_can_have_occurrence_rows(): void
+    public function test_recurring_invoice_generates_occurrences_through_end_date(): void
     {
         $user = User::factory()->create();
 
@@ -24,31 +24,27 @@ class InvoiceOccurrenceTest extends TestCase
             'title' => 'Cloud storage',
             'status' => 'pending',
             'start_date' => now()->startOfMonth()->toDateString(),
-            'end_date' => null,
+            'end_date' => now()->startOfMonth()->addMonths(3)->toDateString(),
             'price' => 39.99,
             'currency' => InvoiceCurrency::EUR->value,
             'type' => InvoiceType::RECURRING->value,
             'recurrence' => InvoiceReccuranceType::MONTHLY->value,
         ]);
 
-        $this->assertCount(6, $invoice->fresh()->occurrences);
+        $occurrences = $invoice->fresh()->occurrences()->orderBy('due_date')->get();
+
+        $this->assertCount(4, $occurrences);
         $this->assertDatabaseHas('invoice_occurrences', [
             'invoice_id' => $invoice->id,
             'status' => InvoiceOccurrenceStatus::PENDING->value,
         ]);
-
-        $invoice->occurrences()->first()->update([
-            'status' => InvoiceOccurrenceStatus::PAID->value,
-            'paid_at' => now(),
-        ]);
-
-        $this->assertDatabaseHas('invoice_occurrences', [
-            'invoice_id' => $invoice->id,
-            'status' => InvoiceOccurrenceStatus::PAID->value,
-        ]);
+        $this->assertSame(
+            now()->startOfMonth()->addMonths(3)->toDateString(),
+            $occurrences->last()->due_date->toDateString()
+        );
     }
 
-    public function test_recurring_invoice_generates_occurrences_on_create(): void
+    public function test_recurring_invoice_rolls_forward_without_end_date(): void
     {
         $user = User::factory()->create();
 
@@ -64,7 +60,48 @@ class InvoiceOccurrenceTest extends TestCase
             'recurrence' => InvoiceReccuranceType::MONTHLY->value,
         ]);
 
-        $this->assertNotNull($invoice->fresh()->occurrences()->first());
-        $this->assertCount(6, $invoice->fresh()->occurrences);
+        $this->assertCount(7, $invoice->fresh()->occurrences);
+
+        $this->travelTo(now()->addMonths(7));
+
+        $invoice->fresh()->syncOccurrences();
+
+        $refreshedInvoice = $invoice->fresh();
+
+        $this->assertCount(6, $refreshedInvoice->occurrences()->whereDate('due_date', '>=', now()->toDateString())->get());
+        $this->assertSame(
+            InvoiceOccurrenceStatus::OVERDUE->value,
+            $refreshedInvoice->occurrences()->orderBy('due_date')->first()->status
+        );
+    }
+
+    public function test_recurrence_is_ignored_on_update_for_any_invoice(): void
+    {
+        $user = User::factory()->create();
+
+        $invoice = Invoice::create([
+            'user_id' => $user->id,
+            'title' => 'Vodafone',
+            'status' => 'pending',
+            'start_date' => now()->startOfMonth()->toDateString(),
+            'end_date' => null,
+            'price' => 29.99,
+            'currency' => InvoiceCurrency::EUR->value,
+            'type' => InvoiceType::ONE_TIME->value,
+            'recurrence' => null,
+        ]);
+
+        $response = $this->actingAs($user)->putJson('/invoices/'.$invoice->id, [
+            'title' => 'Vodafone',
+            'type' => InvoiceType::ONE_TIME->value,
+            'start_date' => $invoice->start_date->toDateString(),
+            'currency' => InvoiceCurrency::EUR->value,
+            'recurrence' => InvoiceReccuranceType::YEARLY->value,
+            'price' => 29.99,
+            'status' => 'pending',
+        ]);
+
+        $response->assertOk();
+        $this->assertNull($invoice->fresh()->recurrence);
     }
 }

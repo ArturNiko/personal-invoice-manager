@@ -7,6 +7,9 @@ import { normalizeDateValue, formatMoney } from '@/Utils/Helpers';
 import { locale, t } from '@/i18n';
 import {
     currencyOptions,
+    getInvoiceStatusOptions,
+    getRecurringPreviewLabel,
+    getStatusLabel,
 } from '@/Utils/Consts';
 
 import InputText from '@/Components/Form/InputText.vue';
@@ -25,6 +28,7 @@ import {
     InvoiceRecurrence,
 } from '@/Types/Invoice';
 import { Currency } from '@/Types/Currency';
+import { f } from 'vue-router/dist/router-CWoNjPRp.mjs';
 
 const router = useRouter();
 const route = useRoute();
@@ -52,26 +56,7 @@ const createEmptyForm = (): InvoiceForm => ({
 
 const form = reactive<InvoiceForm>(createEmptyForm());
 
-const invoiceTypeOptions = computed(() => [
-    { label: t('invoices.oneTime'), value: InvoiceTypes.ONE_TIME },
-    { label: t('invoices.recurring'), value: InvoiceTypes.RECURRING },
-]);
-
-const invoiceStatusOptions = computed(() => [
-    { label: t('invoices.pending'), value: InvoiceStatuses.PENDING },
-    { label: t('invoices.paid'), value: InvoiceStatuses.PAID },
-    { label: t('invoices.overdue'), value: InvoiceStatuses.OVERDUE },
-]);
-
-const invoiceRecurrenceOptions = computed(() => [
-    { label: t('invoices.none'), value: InvoiceRecurrence.NONE },
-    { label: t('invoices.weekly'), value: InvoiceRecurrence.WEEKLY },
-    { label: t('invoices.biweekly'), value: InvoiceRecurrence.BIWEEKLY },
-    { label: t('invoices.monthly'), value: InvoiceRecurrence.MONTHLY },
-    { label: t('invoices.quarterly'), value: InvoiceRecurrence.QUARTERLY },
-    { label: t('invoices.semiannual'), value: InvoiceRecurrence.SEMIANNUAL },
-    { label: t('invoices.yearly'), value: InvoiceRecurrence.YEARLY },
-]);
+const invoiceStatusOptions = computed(() => getInvoiceStatusOptions(t));
 
 const syncFormFromInvoice = (currentInvoice: InvoiceEvent) => {
     form.title = currentInvoice.title;
@@ -180,27 +165,16 @@ const recurringPreviewLabel = computed(() => {
     if (!isRecurring.value)
         return `${t('invoices.previewPrice')}: ${formatMoney(Number(form.price || '0'), form.currency)}`;
 
-    if (form.start_date && !form.end_date)
-        return t('invoices.recurringScheduleEndless');
-    if (!form.start_date || !form.end_date)
-        return t('invoices.recurringScheduleUnset');
-
-    return `${t('invoices.previewSchedule')}: ${getRecurrenceLabel(form.recurrence)}`;
+    return getRecurringPreviewLabel(
+        form.recurrence,
+        t,
+        form.start_date,
+        form.end_date,
+    );
 });
 
 const getTypeLabel = (type: InvoiceTypes) =>
     type === InvoiceTypes.RECURRING ? t('invoices.recurring') : t('invoices.oneTime');
-
-const getStatusLabel = (status: InvoiceStatuses) => {
-    switch (status) {
-        case InvoiceStatuses.PAID:
-            return t('invoices.paid');
-        case InvoiceStatuses.OVERDUE:
-            return t('invoices.overdue');
-        default:
-            return t('invoices.pending');
-    }
-};
 
 const recurringOccurrenceStatusOptions = computed(() => [
     { label: t('invoices.pending'), value: InvoiceStatuses.PENDING },
@@ -214,9 +188,7 @@ const updateOccurrenceStatus = async (
 ) => {
     const invoiceId = route.params.id;
 
-    if (typeof invoiceId !== 'string') {
-        return;
-    }
+    if (typeof invoiceId !== 'string') return;
 
     updatingOccurrenceId.value = occurrenceId;
 
@@ -233,10 +205,12 @@ const updateOccurrenceStatus = async (
         if (index >= 0) {
             occurrences.value[index] = response.data;
         }
-    } catch (error: any) {
+    } 
+    catch (error: any) {
         submitError.value =
             error?.response?.data?.message ?? t('invoices.failedToUpdateInvoice');
-    } finally {
+    } 
+    finally {
         updatingOccurrenceId.value = null;
     }
 };
@@ -246,25 +220,6 @@ const getCurrencyLabel = (currency: Currency) => currency;
 const dateInputLabel = computed(() =>
     isRecurring.value ? t('invoices.startDate') : t('invoices.date'),
 );
-
-const getRecurrenceLabel = (recurrence: InvoiceRecurrence) => {
-    switch (recurrence) {
-        case InvoiceRecurrence.WEEKLY:
-            return t('invoices.weekly');
-        case InvoiceRecurrence.BIWEEKLY:
-            return t('invoices.biweekly');
-        case InvoiceRecurrence.MONTHLY:
-            return t('invoices.monthly');
-        case InvoiceRecurrence.QUARTERLY:
-            return t('invoices.quarterly');
-        case InvoiceRecurrence.SEMIANNUAL:
-            return t('invoices.semiannual');
-        case InvoiceRecurrence.YEARLY:
-            return t('invoices.yearly');
-        default:
-            return t('invoices.none');
-    }
-};
 
 const saveButtonLabel = computed(() =>
     locale.value === 'de' ? 'Rechnung speichern' : 'Save invoice',
@@ -292,15 +247,13 @@ const submitForm = async () => {
     const payload: Partial<InvoiceEvent> &
         Record<string, string | number | undefined> = {
         title: form.title,
-        type: form.type,
-        start_date: form.start_date,
         currency: form.currency,
-        recurrence: isRecurring.value ? form.recurrence : undefined,
         end_date: isRecurring.value ? form.end_date : undefined,
         price: Number(form.price),
     };
 
     if (!isRecurring.value) {
+        payload.start_date = form.start_date;
         payload.status = form.status;
     }
 
@@ -308,10 +261,12 @@ const submitForm = async () => {
         await axios.put(`/invoices/${invoice.value.id}`, payload);
         submitSuccess.value = t('invoices.invoiceUpdated');
         await router.push({ path: '/list', query: { updated: '1' } });
-    } catch (error: any) {
+    } 
+    catch (error: any) {
         submitError.value =
             error?.response?.data?.message ?? t('invoices.failedToUpdateInvoice');
-    } finally {
+    } 
+    finally {
         isSubmitting.value = false;
     }
 };
@@ -351,9 +306,7 @@ onMounted(loadInvoice);
 </script>
 
 <template>
-    <section
-        class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-900/5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40"
-    >
+    <section class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-900/5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40">
         <div
             v-if="loading"
             class="rounded-[2rem] border border-slate-900/10 bg-slate-900/5 p-6 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
@@ -398,11 +351,10 @@ onMounted(loadInvoice);
                         </div>
 
                         <div class="grid gap-4 sm:grid-cols-2">
-                            <InputSelect
-                                v-model="form.type"
-                                :label="t('invoices.type')"
-                                :options="invoiceTypeOptions"
-                            />
+                            <div class="rounded-xl border border-slate-900/10 bg-slate-100/50 p-3 dark:border-white/10 dark:bg-slate-900/40">
+                                <p class="text-xs uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">{{ t('invoices.type') }}</p>
+                                <p class="mt-2 text-sm font-medium text-slate-900 dark:text-white">{{ getTypeLabel(form.type) }}</p>
+                            </div>
                             <div v-if="!isRecurring">
                                 <InputSelect
                                     v-model="form.status"
@@ -427,7 +379,19 @@ onMounted(loadInvoice);
                         </div>
 
                         <div class="grid gap-4 sm:grid-cols-2">
+                            <div
+                                v-if="isRecurring && invoice?.id"
+                                class="rounded-xl border border-slate-900/10 bg-slate-100/50 p-3 dark:border-white/10 dark:bg-slate-900/40"
+                            >
+                                <p class="text-xs uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">
+                                    {{ dateInputLabel }}
+                                </p>
+                                <p class="mt-2 text-sm font-medium text-slate-900 dark:text-white">
+                                    {{ formatOccurrenceDate(form.start_date) }}
+                                </p>
+                            </div>
                             <InputDate
+                                v-else
                                 v-model="form.start_date"
                                 :label="dateInputLabel"
                                 required
@@ -446,12 +410,6 @@ onMounted(loadInvoice);
                             {{ t('invoices.recurringRangeError') }}
                         </p>
 
-                        <InputSelect
-                            v-model="form.recurrence"
-                            :label="t('invoices.recurrence')"
-                            :options="invoiceRecurrenceOptions"
-                            :disabled="!isRecurring"
-                        />
                     </div>
 
                     <div
@@ -473,9 +431,9 @@ onMounted(loadInvoice);
                             <div
                                 v-for="occurrence in occurrences"
                                 :key="occurrence.id"
-                                class="flex flex-col gap-3 rounded-xl border border-slate-900/10 bg-white/60 p-3 dark:border-white/10 dark:bg-slate-900/40 sm:flex-row sm:items-center sm:justify-between"
+                                class="flex flex-row items-start justify-between gap-3 rounded-xl border border-slate-900/10 bg-white/60 p-3 text-sm dark:border-white/10 dark:bg-slate-900/40"
                             >
-                                <div>
+                                <div class="min-w-0 flex-1 text-left">
                                     <p class="font-medium text-slate-900 dark:text-white">
                                         {{ formatOccurrenceDate(occurrence.due_date) }}
                                     </p>
@@ -484,25 +442,14 @@ onMounted(loadInvoice);
                                     </p>
                                 </div>
 
-                                <div class="flex items-center gap-2">
-                                    <label class="sr-only" :for="`occurrence-status-${occurrence.id}`">
-                                        {{ t('invoices.status') }}
-                                    </label>
-                                    <select
-                                        :id="`occurrence-status-${occurrence.id}`"
-                                        class="rounded-xl border border-slate-900/10 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 dark:border-white/10 dark:bg-slate-800 dark:text-slate-100"
-                                        :value="occurrence.status"
+                                <div class="ml-4 w-36">
+                                    <InputSelect
+                                        :model-value="String(occurrence.status)"
+                                        :label="t('invoices.status')"
+                                        :options="recurringOccurrenceStatusOptions"
                                         :disabled="updatingOccurrenceId === occurrence.id"
-                                        @change="updateOccurrenceStatus(occurrence.id, ($event.target as HTMLSelectElement).value as InvoiceStatuses)"
-                                    >
-                                        <option
-                                            v-for="option in recurringOccurrenceStatusOptions"
-                                            :key="option.value"
-                                            :value="option.value"
-                                        >
-                                            {{ option.label }}
-                                        </option>
-                                    </select>
+                                        @update:model-value="updateOccurrenceStatus(occurrence.id, $event as InvoiceStatuses)"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -513,12 +460,8 @@ onMounted(loadInvoice);
                     </div>
                 </div>
 
-                <aside
-                    class="rounded-2xl border border-dashed border-slate-900/10 bg-slate-100/30 p-5 dark:border-white/10 dark:bg-slate-950/30"
-                >
-                    <p
-                        class="text-xs uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400"
-                    >
+                <aside class="rounded-2xl border border-dashed border-slate-900/10 bg-slate-100/30 p-5 dark:border-white/10 dark:bg-slate-950/30">
+                    <p class="text-xs uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400">
                         {{ t('invoices.previewSummary') }}
                     </p>
                     <h3 class="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
@@ -529,24 +472,16 @@ onMounted(loadInvoice);
                     </p>
 
                     <div class="mt-6 space-y-3 text-sm text-slate-700 dark:text-slate-300">
-                        <div
-                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
-                        >
+                        <div class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5">
                             {{ t('invoices.previewType') }}: {{ getTypeLabel(form.type) }}
                         </div>
-                        <div
-                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
-                        >
+                        <div class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5">
                             {{ t('invoices.previewStatus') }}: {{ getStatusLabel(form.status) }}
                         </div>
-                        <div
-                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
-                        >
+                        <div class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5">
                             {{ t('invoices.previewCurrency') }}: {{ getCurrencyLabel(form.currency) }}
                         </div>
-                        <div
-                            class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
-                        >
+                        <div class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5">
                             {{ recurringPreviewLabel }}
                         </div>
                     </div>

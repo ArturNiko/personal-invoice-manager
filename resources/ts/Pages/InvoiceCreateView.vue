@@ -8,6 +8,11 @@ import { formatMoney, normalizeDateValue } from '@/Utils/Helpers';
 import { locale, t } from '@/i18n';
 import {
     currencyOptions,
+    getInvoiceRecurrenceOptions,
+    getInvoiceStatusOptions,
+    getInvoiceTypeOptions,
+    getRecurringPreviewLabel,
+    getStatusLabel,
 } from '@/Utils/Consts';
 
 import InputText from '@/Components/Form/InputText.vue';
@@ -50,26 +55,11 @@ const form = reactive<InvoiceForm>({
 
 const isGerman = computed(() => locale.value === 'de');
 
-const invoiceTypeOptions = computed(() => [
-    { label: t('invoices.oneTime'), value: InvoiceTypes.ONE_TIME },
-    { label: t('invoices.recurring'), value: InvoiceTypes.RECURRING },
-]);
+const invoiceTypeOptions = computed(() => getInvoiceTypeOptions(t));
 
-const invoiceStatusOptions = computed(() => [
-    { label: isGerman.value ? 'Ausstehend' : 'Pending', value: InvoiceStatuses.PENDING },
-    { label: isGerman.value ? 'Bezahlt' : 'Paid', value: InvoiceStatuses.PAID },
-    { label: isGerman.value ? 'Überfällig' : 'Overdue', value: InvoiceStatuses.OVERDUE },
-]);
+const invoiceStatusOptions = computed(() => getInvoiceStatusOptions(t));
 
-const invoiceRecurrenceOptions = computed(() => [
-    { label: isGerman.value ? 'Keine' : 'None', value: InvoiceRecurrence.NONE },
-    { label: isGerman.value ? 'Wöchentlich' : 'Weekly', value: InvoiceRecurrence.WEEKLY },
-    { label: isGerman.value ? 'Alle zwei Wochen' : 'Biweekly', value: InvoiceRecurrence.BIWEEKLY },
-    { label: isGerman.value ? 'Monatlich' : 'Monthly', value: InvoiceRecurrence.MONTHLY },
-    { label: isGerman.value ? 'Vierteljährlich' : 'Quarterly', value: InvoiceRecurrence.QUARTERLY },
-    { label: isGerman.value ? 'Halbjährlich' : 'Semiannual', value: InvoiceRecurrence.SEMIANNUAL },
-    { label: isGerman.value ? 'Jährlich' : 'Yearly', value: InvoiceRecurrence.YEARLY },
-]);
+const invoiceRecurrenceOptions = computed(() => getInvoiceRecurrenceOptions(t));
 
 const isRecurring = computed(() => form.type === InvoiceTypes.RECURRING);
 const isImportMode = computed(() => createMode.value === 'import');
@@ -84,56 +74,21 @@ const recurringPreviewLabel = computed(() => {
     if (!isRecurring.value)
         return `${t('invoices.previewPrice')}: ${formatMoney(Number(form.price || '0'), form.currency)}`;
 
-    if (form.start_date && !form.end_date)
-        return t('invoices.recurringScheduleEndless');
-    if (!form.start_date || !form.end_date)
-        return t('invoices.recurringScheduleUnset');
-
-    return `${t('invoices.previewSchedule')}: ${getRecurrenceLabel(form.recurrence)}`;
+    return getRecurringPreviewLabel(
+        form.recurrence,
+        t,
+        form.start_date,
+        form.end_date,
+    );
 });
 
 const getTypeLabel = (type: InvoiceTypes) =>
     type === InvoiceTypes.RECURRING ? t('invoices.recurring') : t('invoices.oneTime');
 
-const getStatusLabel = (status: InvoiceStatuses) => {
-    switch (status) {
-        case InvoiceStatuses.PAID:
-            return isGerman.value ? 'Bezahlt' : 'Paid';
-        case InvoiceStatuses.OVERDUE:
-            return isGerman.value ? 'Überfällig' : 'Overdue';
-        default:
-            return isGerman.value ? 'Ausstehend' : 'Pending';
-    }
-};
-
 const getCurrencyLabel = (currency: Currency) => currency;
 
-const dateInputLabel = computed(() =>
-    isRecurring.value ? (isGerman.value ? 'Startdatum' : 'Start date') : (isGerman.value ? 'Datum' : 'Date'),
-);
-
-const getRecurrenceLabel = (recurrence: InvoiceRecurrence) => {
-    switch (recurrence) {
-        case InvoiceRecurrence.WEEKLY:
-            return isGerman.value ? 'Wöchentlich' : 'Weekly';
-        case InvoiceRecurrence.BIWEEKLY:
-            return isGerman.value ? 'Alle zwei Wochen' : 'Biweekly';
-        case InvoiceRecurrence.MONTHLY:
-            return isGerman.value ? 'Monatlich' : 'Monthly';
-        case InvoiceRecurrence.QUARTERLY:
-            return isGerman.value ? 'Vierteljährlich' : 'Quarterly';
-        case InvoiceRecurrence.SEMIANNUAL:
-            return isGerman.value ? 'Halbjährlich' : 'Semiannual';
-        case InvoiceRecurrence.YEARLY:
-            return isGerman.value ? 'Jährlich' : 'Yearly';
-        default:
-            return isGerman.value ? 'Keine' : 'None';
-    }
-};
-
-const priceInputLabel = computed(() =>
-    isRecurring.value ? t('invoices.occurrencePrice') : t('invoices.price'),
-);
+const dateInputLabel = computed(() => isRecurring.value ? (isGerman.value ? 'Startdatum' : 'Start date') : (isGerman.value ? 'Datum' : 'Date'),);
+const priceInputLabel = computed(() => isRecurring.value ? t('invoices.occurrencePrice') : t('invoices.price'),);
 
 const setCreateMode = (mode: 'manual' | 'import') => {
     createMode.value = mode;
@@ -239,9 +194,7 @@ const submitForm = async () => {
 </script>
 
 <template>
-    <section
-        class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-900/5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40"
-    >
+    <section class="flex h-full min-h-[36rem] flex-col overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-900/5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40">
         <div class="border-b border-slate-900/10 px-5 py-4 sm:px-6 dark:border-white/10">
             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('invoices.createInvoice') }}</h2>
             <p class="text-sm text-slate-600 dark:text-slate-400">
@@ -254,9 +207,7 @@ const submitForm = async () => {
             @submit.prevent="submitForm"
         >
             <div class="space-y-6">
-                <div
-                    class="rounded-2xl border border-slate-900/10 bg-white/70 p-1 shadow-lg shadow-slate-500/30 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-black/30"
-                >
+                <div class="rounded-2xl border border-slate-900/10 bg-white/70 p-1 shadow-lg shadow-slate-500/30 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-black/30">
                     <div class="grid grid-cols-2 gap-1">
                         <button
                             type="button"
@@ -366,9 +317,7 @@ const submitForm = async () => {
                 </div>
             </div>
 
-            <aside
-                class="rounded-2xl border border-dashed border-slate-900/10 bg-slate-100/30 p-5 dark:border-white/10 dark:bg-slate-950/30"
-            >
+            <aside class="rounded-2xl border border-dashed border-slate-900/10 bg-slate-100/30 p-5 dark:border-white/10 dark:bg-slate-950/30">
                 <p class="text-xs uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400">
                     {{ t('invoices.previewSummary') }}
                 </p>
@@ -388,24 +337,16 @@ const submitForm = async () => {
                 </p>
 
                 <div class="mt-6 space-y-3 text-sm text-slate-700 dark:text-slate-300">
-                    <div
-                        class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
-                    >
+                    <div class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5">
                         {{ t('invoices.previewType') }}: {{ getTypeLabel(form.type) }}
                     </div>
-                    <div
-                        class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
-                    >
+                    <div class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5">
                         {{ t('invoices.previewStatus') }}: {{ getStatusLabel(form.status) }}
                     </div>
-                    <div
-                        class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
-                    >
+                    <div class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5">
                         {{ t('invoices.previewCurrency') }}: {{ getCurrencyLabel(form.currency) }}
                     </div>
-                    <div
-                        class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5"
-                    >
+                    <div class="rounded-xl border border-slate-900/10 bg-slate-900/5 p-3 dark:border-white/10 dark:bg-white/5">
                         {{ recurringPreviewLabel }}
                     </div>
                 </div>

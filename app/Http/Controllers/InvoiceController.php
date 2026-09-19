@@ -6,7 +6,8 @@ use App\Enums\AgentTaskState;
 use App\Exceptions\InvoiceNotProcessableException;
 use App\Http\Requests\InvoiceImportRequest;
 use App\Http\Requests\InvoiceIndexRequest;
-use App\Http\Requests\InvoicesRequest;
+use App\Http\Requests\StoreInvoiceRequest;
+use App\Http\Requests\UpdateInvoiceRequest;
 use App\Models\AgentTask;
 use App\Models\Invoice;
 use App\Services\Nanonets\NanonetsClient;
@@ -76,7 +77,7 @@ class InvoiceController extends Controller
         return response()->json(['message' => 'Invoice deleted successfully.']);
     }
 
-    public function update(Invoice $invoice, InvoicesRequest $request)
+    public function update(Invoice $invoice, UpdateInvoiceRequest $request)
     {
         $this->authorizeAccess($invoice);
 
@@ -87,7 +88,7 @@ class InvoiceController extends Controller
         return response()->json($invoice);
     }
 
-    public function store(InvoicesRequest $request)
+    public function store(StoreInvoiceRequest $request)
     {
         $validated = $request->validated();
         $validated['user_id'] = auth()->id();

@@ -29,18 +29,23 @@ class InvoicesRequest extends FormRequest
 
     public function rules(): array
     {
+        return $this->commonRules();
+    }
+
+    protected function commonRules(): array
+    {
         return [
             'title' => [
-                'required', 
-                'string', 
+                'required',
+                'string',
                 'max:255'
             ],
             'status' => [
-                'required', 
+                'required',
                 Rule::enum(InvoiceStatus::class)
             ],
             'start_date' => [
-                'required', 
+                'required',
                 'date'
             ],
             'end_date' => [
@@ -51,19 +56,9 @@ class InvoicesRequest extends FormRequest
             ],
             'currency' => [
                 'required',
-                'string', 
-                'size:3', 
+                'string',
+                'size:3',
                 Rule::enum(InvoiceCurrency::class)
-            ],
-            'type' => [
-                'required', 
-                Rule::enum(InvoiceType::class)
-            ],
-            'recurrence' => [
-                Rule::requiredIf(fn () => $this->input('type') === InvoiceType::RECURRING->value),
-                Rule::excludeIf(fn () => $this->input('type') === InvoiceType::ONE_TIME->value),
-                'nullable',
-                Rule::enum(InvoiceReccuranceType::class),
             ],
             'price' => ['required', 'numeric', 'min:0'],
         ];

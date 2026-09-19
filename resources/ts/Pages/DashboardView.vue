@@ -369,7 +369,7 @@ onUnmounted(() => {
 
 <template>
     <div class="space-y-3 sm:space-y-5">
-        <section class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3 sm:gap-4">
+        <section class="grid grid-cols-1 gap-2 xl:grid-cols-3 sm:gap-4">
             <DashboardStatCard
                 :label="t('dashboard.dueThisMonth')"
                 :value="statsDisplay.dueThisMonth"
@@ -390,21 +390,13 @@ onUnmounted(() => {
             />
         </section>
 
-        <section
-            class="calendar-shell relative flex h-full min-h-[30rem] flex-col overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-900/5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 sm:min-h-[38rem]"
-        >
-        <div
-            class="flex items-center justify-between border-b border-slate-900/10 px-5 py-4 sm:px-6 dark:border-white/10"
-        >
+        <section class="calendar-shell relative flex h-full min-h-[30rem] flex-col overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-900/5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 sm:min-h-[38rem]">
+        <div class="flex items-center justify-between border-b border-slate-900/10 px-5 py-4 sm:px-6 dark:border-white/10">
             <div>
-                <h2
-                    class="text-lg font-semibold text-slate-900 dark:text-white"
-                >
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
                     {{ t('dashboard.calendarTitle') }}
                 </h2>
-                <p
-                    class="mr-4 text-sm text-slate-600 dark:text-slate-400"
-                >
+                <p class="mr-4 text-sm text-slate-600 dark:text-slate-400">
                     {{ t('dashboard.calendarSubtitle') }}
                 </p>
             </div>
@@ -446,16 +438,10 @@ onUnmounted(() => {
         </Tooltip>
         </section>
 
-        <section
-            class="dashboard-panel rounded-[2rem] border border-slate-900/10 bg-slate-900/5 p-5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40 sm:p-6"
-        >
-            <div
-                class="flex flex-col gap-3 border-b border-slate-900/10 pb-4 sm:flex-row sm:items-center sm:justify-between sm:pb-5 dark:border-white/10"
-            >
+        <section class="dashboard-panel rounded-[2rem] border border-slate-900/10 bg-slate-900/5 p-5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40 sm:p-6">
+            <div class="flex flex-col gap-3 border-b border-slate-900/10 pb-4 sm:flex-row sm:items-center sm:justify-between sm:pb-5 dark:border-white/10">
                 <div>
-                    <p
-                        class="text-xs uppercase tracking-[0.28em] text-cyan-700/70 dark:text-cyan-300/70"
-                    >
+                    <p class="text-xs uppercase tracking-[0.28em] text-cyan-700/70 dark:text-cyan-300/70">
                         {{ t('dashboard.forecast') }}
                     </p>
                     <h2 class="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
@@ -503,13 +489,9 @@ onUnmounted(() => {
             </div>
         </section>
 
-        <section
-            class="dashboard-panel rounded-[2rem] border border-slate-900/10 bg-slate-900/5 p-5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40 sm:p-6"
-        >
+        <section class="dashboard-panel rounded-[2rem] border border-slate-900/10 bg-slate-900/5 p-5 shadow-2xl shadow-slate-500/40 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/40 sm:p-6">
             <div class="border-b border-slate-900/10 pb-4 sm:pb-5 dark:border-white/10">
-                <p
-                    class="text-xs uppercase tracking-[0.28em] text-cyan-700/70 dark:text-cyan-300/70"
-                >
+                <p class="text-xs uppercase tracking-[0.28em] text-cyan-700/70 dark:text-cyan-300/70">
                     {{ t('dashboard.upcoming') }}
                 </p>
                 <h2 class="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
@@ -541,9 +523,7 @@ onUnmounted(() => {
                         <Badge :variant="getUpcomingTypeVariant(item.type)">
                             {{ getUpcomingTypeLabel(item.type) }}
                         </Badge>
-                        <p
-                            class="whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white"
-                        >
+                        <p class="whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white">
                             {{ formatUpcomingAmount(item) }}
                         </p>
                     </div>
@@ -555,9 +535,7 @@ onUnmounted(() => {
                 class="flex min-h-[8rem] items-center justify-center rounded-2xl border border-dashed border-slate-900/10 bg-slate-100/20 p-6 text-center dark:border-white/10 dark:bg-slate-950/20"
             >
                 <div>
-                    <p
-                        class="text-xs uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400"
-                    >
+                    <p class="text-xs uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400">
                         {{ t('dashboard.noData') }}
                     </p>
                     <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">

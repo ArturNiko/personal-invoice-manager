@@ -53,6 +53,13 @@ const csrf =
 
 const activeSection = ref('account');
 
+const sections = [
+    { id: 'account', label: t('profile.account') },
+    { id: 'preferences', label: t('profile.preferences') },
+    { id: 'security', label: t('profile.security') },
+    { id: 'danger', label: t('profile.dangerZone') },
+];
+
 const scrollToSection = (id: string) => {
     activeSection.value = id;
     document.getElementById(id)?.scrollIntoView({
@@ -327,23 +334,14 @@ onMounted(fetchProfile);
             </Button>
         </section>
 
-        <div
-            class="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start"
-        >
-            <aside class="w-full lg:sticky lg:top-6">
-                <nav
-                    class="flex gap-2 overflow-x-auto rounded-2xl border border-slate-900/10 dark:border-white/10 bg-white/70 p-2 backdrop-blur-xl lg:flex-col lg:overflow-visible dark:bg-slate-900/70"
-                >
+        <div class="grid grid-cols-1 gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
+                <aside class="w-full lg:sticky lg:top-6 min-w-0">
+                <nav class="flex gap-2 max-w-full overflow-x-auto rounded-2xl border border-slate-900/10 dark:border-white/10 bg-white/70 p-2 backdrop-blur-xl lg:flex-col lg:overflow-visible dark:bg-slate-900/70">
                     <button
-                        v-for="item in [
-                            { id: 'account', label: t('profile.account') },
-                            { id: 'preferences', label: t('profile.preferences') },
-                            { id: 'security', label: t('profile.security') },
-                            { id: 'danger', label: t('profile.dangerZone') },
-                        ]"
+                        v-for="item in sections"
                         :key="item.id"
                         type="button"
-                        class="shrink-0 rounded-xl px-2.5 py-2 text-[11px] font-medium transition sm:px-3 sm:py-2.5 sm:text-sm lg:shrink"
+                        class="shrink lg:shrink-0 rounded-xl px-2.5 py-2 text-[11px] font-medium transition sm:px-3 sm:py-2.5 sm:text-sm"
                         :class="
                             activeSection === item.id
                                 ? 'bg-slate-900 text-white shadow-sm shadow-slate-500/30 dark:bg-white dark:text-slate-950 dark:shadow-black/30'

@@ -14,6 +14,8 @@ class InvoiceOccurrenceController extends Controller
     {
         $this->authorizeAccess($invoice);
 
+        $invoice->syncOccurrences();
+
         return response()->json(
             $invoice->occurrences()->orderBy('due_date')->get()
         );

@@ -107,10 +107,10 @@ const languageOptions = ['en', 'de'] as const;
             <header
                 class="rounded-[1.75rem] border border-slate-900/10 bg-white/60 p-2.5 shadow-[0_12px_24px_-18px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/60 sm:p-3"
             >
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center justify-between gap-2">
                     <RouterLink
                         to="/dashboard"
-                        class="group flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-90"
+                        class="group flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-90 w-full sm:w-auto"
                     >
                         <div
                             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-700/40 bg-cyan-700/10 text-xs font-black tracking-tight text-cyan-700 shadow-[inset_0_1px_0_rgba(15,23,42,0.06)] transition group-hover:border-cyan-700/60 dark:border-cyan-300/40 dark:bg-cyan-400/10 dark:text-cyan-200 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] dark:group-hover:border-cyan-300/60"
@@ -124,7 +124,7 @@ const languageOptions = ['en', 'de'] as const;
                                 {{ t('app.personal') }}
                             </p>
                             <h1
-                                class="truncate text-base font-bold leading-tight tracking-[-0.05em] text-slate-900 dark:text-white sm:text-lg"
+                                class="text-base font-bold leading-tight tracking-[-0.05em] text-slate-900 dark:text-white sm:text-lg sm:truncate"
                             >
                                 {{ t('app.invoiceManager') }}
                             </h1>
@@ -178,12 +178,8 @@ const languageOptions = ['en', 'de'] as const;
                         </template>
                     </nav>
 
-                    <div
-                        class="flex shrink-0 items-center justify-end gap-1.5"
-                    >
-                        <div
-                            class="flex items-center gap-1 rounded-xl border border-slate-900/10 bg-slate-100/60 p-1 dark:border-white/10 dark:bg-slate-950/60"
-                        >
+                    <div class="flex shrink-0 items-center sm:justify-end gap-1.5 w-full sm:w-auto mt-2 sm:mt-0">
+                        <div class="flex items-center gap-1 rounded-xl border border-slate-900/10 bg-slate-100/60 p-1 dark:border-white/10 dark:bg-slate-950/60 mr-auto">
                             <button
                                 v-for="language in languageOptions"
                                 :key="language"
@@ -199,7 +195,6 @@ const languageOptions = ['en', 'de'] as const;
                                 {{ language }}
                             </button>
                         </div>
-
                         <button
                             type="button"
                             :aria-label="
